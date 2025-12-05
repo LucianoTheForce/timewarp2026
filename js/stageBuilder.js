@@ -672,33 +672,30 @@ export class StageBuilder {
             this.railingsGroup.add(mesh);
         };
 
-        // Frente com aberturas nos cantos para as escadas
-        const frontZ = deckBox.min.z - t / 2;
-        const sideCenterZ = (deckBox.min.z + deckBox.max.z) / 2;
-        const gapW = stairsWidth + 0.2;
-        const margin = 0.05;
-        const leftGapCenter = deckBox.min.x + stairsWidth / 2 + margin;
-        const rightGapCenter = deckBox.max.x - stairsWidth / 2 - margin;
-
-        const addFront = (startX, endX) => {
-            const w = endX - startX;
-            if (w <= 0) return;
-            addSegment((startX + endX) / 2, frontZ, w, t);
-        };
-
-        addFront(deckBox.min.x, leftGapCenter - gapW / 2);
-        addFront(leftGapCenter + gapW / 2, rightGapCenter - gapW / 2);
-        addFront(rightGapCenter + gapW / 2, deckBox.max.x);
-
-        // Traseira continua
+        // Frente e traseira contínuas
+        addSegment((deckBox.min.x + deckBox.max.x) / 2, deckBox.min.z - t / 2, deckBox.max.x - deckBox.min.x, t);
         addSegment((deckBox.min.x + deckBox.max.x) / 2, deckBox.max.z + t / 2, deckBox.max.x - deckBox.min.x, t);
 
-        // Laterais continuas (sem cortes)
-        const sideDepth = deckBox.max.z - deckBox.min.z;
+        // Laterais com aberturas perto dos cantos (escadas na lateral)
+        const margin = 0.05;
+        const gapD = stairsWidth + 0.2;
+        const gapCenterZ = deckBox.min.z + stairsWidth / 2 + margin; // canto frontal
+
+        const addSideWithGap = (xPos) => {
+            const gapMin = gapCenterZ - gapD / 2;
+            const gapMax = gapCenterZ + gapD / 2;
+            if (gapMin > deckBox.min.z) {
+                addSegment(xPos, (deckBox.min.z + gapMin) / 2, t, gapMin - deckBox.min.z);
+            }
+            if (deckBox.max.z > gapMax) {
+                addSegment(xPos, (gapMax + deckBox.max.z) / 2, t, deckBox.max.z - gapMax);
+            }
+        };
+
         const leftX = deckBox.min.x - t / 2;
         const rightX = deckBox.max.x + t / 2;
-        addSegment(leftX, sideCenterZ, t, sideDepth);
-        addSegment(rightX, sideCenterZ, t, sideDepth);
+        addSideWithGap(leftX);
+        addSideWithGap(rightX);
     }
 
     buildStairs() {
@@ -713,25 +710,26 @@ export class StageBuilder {
         const stepD = stairsDepth / steps;
         const margin = 0.05;
 
-        // Escadas nos cantos frontais, degraus entrando no palco (eixo +Z)
-        const zStart = deckBox.min.z + stepD / 2;
-        const leftX = deckBox.min.x + stairsWidth / 2 + margin;
-        const rightX = deckBox.max.x - stairsWidth / 2 - margin;
+        // Escadas na lateral frontal esquerda/direita, degraus entrando no palco (eixo +X para esquerda, -X para direita)
+        const zPos = deckBox.min.z + stairsWidth / 2 + margin;
+        const leftStartX = deckBox.min.x - stepD / 2 - margin;
+        const rightStartX = deckBox.max.x + stepD / 2 + margin;
 
-        const makeStairs = (xCenter) => {
+        const makeStairs = (xStart, dir) => {
             for (let i = 0; i < steps; i++) {
-                const geom = new THREE.BoxGeometry(stairsWidth, stepH, stepD);
+                const geom = new THREE.BoxGeometry(stepD, stepH, stairsWidth);
                 const mesh = new THREE.Mesh(geom, this.stairsMaterial.clone());
                 const yCenter = stepH * (i + 0.5);
-                const zCenter = zStart + i * stepD;
-                mesh.position.set(xCenter, yCenter, zCenter);
+                const xCenter = xStart + dir * i * stepD;
+                mesh.position.set(xCenter, yCenter, zPos);
                 mesh.userData.type = 'stairs';
                 this.stairsGroup.add(mesh);
             }
         };
 
-        makeStairs(leftX);
-        makeStairs(rightX);
+        // esquerda: avança para +X; direita: avança para -X
+        makeStairs(leftStartX, +1);
+        makeStairs(rightStartX, -1);
     }
 
     buildRisers() {
