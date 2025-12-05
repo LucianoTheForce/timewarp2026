@@ -325,6 +325,10 @@ class PalcoParametrico {
             this.stageBuilder.setParam('deckHeight', parseFloat(value));
         });
 
+        document.getElementById('hide-rear-panels').addEventListener('change', (e) => {
+            this.stageBuilder.setParam('hideRearPanels', e.target.checked);
+        });
+
         document.getElementById('show-glb-model').addEventListener('change', (e) => {
             if (e.target.checked && !this.glbModel) {
                 this.loadGLB();

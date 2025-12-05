@@ -75,6 +75,7 @@ export class StageBuilder {
             ledExternalPanelsPerRow: 2, // 1 ou 2 por linha/face
             ledExternalColor: 0xff0000, // 16711680
             ledExternalIntensity: 6.0,
+            hideRearPanels: true,
 
             // LED effects
             ledEffect: 'wave',
@@ -87,6 +88,7 @@ export class StageBuilder {
         this.pipeMaterial = null;
         this.ledBoxMaterial = null;
         this.ledExternalMaterial = null;
+        this.clothMaterial = null;
         this.centralPanelMaterial = null;
 
         // Video texture
@@ -144,6 +146,13 @@ export class StageBuilder {
             metalness: 0.1,
             roughness: 0.3,
             side: THREE.FrontSide
+        });
+
+        this.clothMaterial = new THREE.MeshStandardMaterial({
+            color: 0x000000,
+            metalness: 0.0,
+            roughness: 0.9,
+            side: THREE.DoubleSide
         });
     }
 
@@ -770,6 +779,21 @@ export class StageBuilder {
                     const y = yPositions[panelIndex] ?? totalHeight / 2;
 
                     const panelGeom = new THREE.BoxGeometry(panelSize, panelSize, 0.05);
+
+                    const isBackFace = face === 2;
+                    if (this.params.hideRearPanels && isBackFace) {
+                        const cloth = new THREE.Mesh(panelGeom, this.clothMaterial.clone());
+                        cloth.position.copy(tower.position);
+                        cloth.position.y = y;
+                        const faceAngle = angle + (face * Math.PI / 2);
+                        cloth.position.x += Math.cos(faceAngle) * panelOffset;
+                        cloth.position.z += Math.sin(faceAngle) * panelOffset;
+                        cloth.rotation.y = -faceAngle + Math.PI / 2;
+                        cloth.userData.type = 'cloth';
+                        this.ledGlassPanels.add(cloth);
+                        continue;
+                    }
+
                     const panelMat = this.ledBoxMaterial.clone();
                     const panel = new THREE.Mesh(panelGeom, panelMat);
 
