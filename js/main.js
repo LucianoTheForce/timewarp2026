@@ -1,0 +1,401 @@
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { StageBuilder } from './stageBuilder.js';
+import { LightingSystem } from './lightingSystem.js';
+
+class PalcoParametrico {
+    constructor() {
+        this.scene = null;
+        this.camera = null;
+        this.renderer = null;
+        this.controls = null;
+        this.stageBuilder = null;
+        this.lightingSystem = null;
+        this.glbModel = null;
+        this.clock = new THREE.Clock();
+
+        // Stats tracking
+        this.stats = { fps: 0, triangles: 0 };
+        this.lastFrameTime = performance.now();
+        this.frameCount = 0;
+
+        // Video elements
+        this.videoPreview = document.getElementById('video-preview');
+
+        this.init();
+        this.setupEventListeners();
+        this.hideLoading();
+    }
+
+    init() {
+        // Scene
+        this.scene = new THREE.Scene();
+        this.scene.background = new THREE.Color(0x4a4a4a);
+        this.scene.fog = new THREE.FogExp2(0x4a4a4a, 0.008);
+
+        // Camera
+        this.camera = new THREE.PerspectiveCamera(
+            60,
+            window.innerWidth / window.innerHeight,
+            0.1,
+            500
+        );
+        this.camera.position.set(20, 15, 25);
+
+        // Renderer
+        this.renderer = new THREE.WebGLRenderer({
+            antialias: true,
+            powerPreference: 'high-performance'
+        });
+        this.renderer.setSize(window.innerWidth, window.innerHeight);
+        this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        this.renderer.shadowMap.enabled = true;
+        this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        this.renderer.toneMappingExposure = 1.2;
+
+        document.getElementById('canvas-container').appendChild(this.renderer.domElement);
+
+        // Controls
+        this.controls = new OrbitControls(this.camera, this.renderer.domElement);
+        this.controls.enableDamping = true;
+        this.controls.dampingFactor = 0.05;
+        this.controls.maxPolarAngle = Math.PI / 2 - 0.05;
+        this.controls.minDistance = 5;
+        this.controls.maxDistance = 100;
+        this.controls.target.set(0, 5, 0);
+
+        // Initialize subsystems
+        this.stageBuilder = new StageBuilder(this.scene);
+        this.lightingSystem = new LightingSystem(this.scene);
+        this.lightingSystem.setupLighting();
+
+        // Build initial stage
+        this.stageBuilder.rebuild();
+
+        // Window resize handler
+        window.addEventListener('resize', () => this.onWindowResize());
+
+        // Start animation loop
+        this.animate();
+    }
+
+    hideLoading() {
+        const loading = document.getElementById('loading');
+        if (loading) {
+            loading.style.opacity = '0';
+            setTimeout(() => {
+                loading.style.display = 'none';
+            }, 500);
+        }
+    }
+
+    setupEventListeners() {
+        // Tower configuration
+        this.setupSlider('tower-count', 'tower-count-val', (value) => {
+            this.stageBuilder.setParam('towerCount', parseInt(value));
+        });
+
+        document.getElementById('tower-shape').addEventListener('change', (e) => {
+            this.stageBuilder.setParam('towerShape', e.target.value);
+        });
+
+        this.setupSlider('tower-levels', 'tower-levels-val', (value) => {
+            this.stageBuilder.setParam('towerLevels', parseInt(value));
+        });
+
+        this.setupSlider('layout-radius', 'layout-radius-val', (value) => {
+            this.stageBuilder.setParam('layoutRadius', parseFloat(value));
+        });
+
+        document.getElementById('layout-type').addEventListener('change', (e) => {
+            this.stageBuilder.setParam('layoutType', e.target.value);
+        });
+
+        this.setupSlider('layout-spacing', 'layout-spacing-val', (value) => {
+            this.stageBuilder.setParam('layoutSpacing', parseFloat(value));
+        });
+
+        this.setupSlider('tower-width', 'tower-width-val', (value) => {
+            this.stageBuilder.setParam('towerWidth', parseFloat(value));
+        });
+
+        this.setupSlider('tower-depth', 'tower-depth-val', (value) => {
+            this.stageBuilder.setParam('towerDepth', parseFloat(value));
+        });
+
+        // Pipe configuration
+        this.setupSlider('pipe-diameter', 'pipe-diameter-val', (value) => {
+            this.stageBuilder.setParam('pipeDiameter', parseInt(value) / 1000); // Convert mm to m
+        });
+
+        document.getElementById('pipe-color').addEventListener('input', (e) => {
+            const color = parseInt(e.target.value.replace('#', ''), 16);
+            this.stageBuilder.setParam('pipeColor', color);
+        });
+
+        document.getElementById('show-diagonal-braces').addEventListener('change', (e) => {
+            this.stageBuilder.setParam('showDiagonalBraces', e.target.checked);
+        });
+
+        // LED Box Truss Central configuration
+        document.getElementById('led-boxtruss-enabled').addEventListener('change', (e) => {
+            this.stageBuilder.setParam('ledBoxTrussEnabled', e.target.checked);
+        });
+
+        this.setupSlider('boxtruss-panels', 'boxtruss-panels-val', (value) => {
+            this.stageBuilder.setParam('ledBoxTrussPanelsPerFace', parseInt(value));
+        });
+
+        this.setupSlider('boxtruss-faces', 'boxtruss-faces-val', (value) => {
+            this.stageBuilder.setParam('ledBoxTrussFaces', parseInt(value));
+        });
+
+        // LED Andaimes Externos configuration
+        document.getElementById('led-external-enabled').addEventListener('change', (e) => {
+            this.stageBuilder.setParam('ledExternalEnabled', e.target.checked);
+        });
+
+        this.setupSlider('external-panels', 'external-panels-val', (value) => {
+            this.stageBuilder.setParam('ledExternalPanelsPerFace', parseInt(value));
+        });
+
+        this.setupSlider('external-faces', 'external-faces-val', (value) => {
+            this.stageBuilder.setParam('ledExternalFaces', parseInt(value));
+        });
+
+        // Video controls
+        document.getElementById('video-upload').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                this.stageBuilder.setVideoSource(file);
+                this.videoPreview.src = URL.createObjectURL(file);
+                this.videoPreview.style.display = 'block';
+            }
+        });
+
+        document.getElementById('apply-video').addEventListener('click', () => {
+            const urlInput = document.getElementById('video-url');
+            if (urlInput.value) {
+                this.stageBuilder.setVideoSource(urlInput.value);
+                this.videoPreview.src = urlInput.value;
+                this.videoPreview.style.display = 'block';
+            }
+            this.stageBuilder.applyVideoTexture();
+            document.getElementById('led-effect').value = 'video';
+        });
+
+        document.getElementById('play-video').addEventListener('click', () => {
+            this.stageBuilder.playVideo();
+            this.videoPreview.play();
+        });
+
+        document.getElementById('pause-video').addEventListener('click', () => {
+            this.stageBuilder.pauseVideo();
+            this.videoPreview.pause();
+        });
+
+        // LED effects
+        document.getElementById('led-effect').addEventListener('change', (e) => {
+            this.stageBuilder.setParam('ledEffect', e.target.value);
+        });
+
+        document.getElementById('led-color').addEventListener('input', (e) => {
+            const color = parseInt(e.target.value.replace('#', ''), 16);
+            this.stageBuilder.params.ledColor = color;
+            this.stageBuilder.updateLedColor(color);
+        });
+
+        this.setupSlider('led-intensity', 'led-intensity-val', (value) => {
+            this.stageBuilder.params.ledIntensity = parseFloat(value);
+            this.stageBuilder.updateLedIntensity(parseFloat(value));
+        });
+
+        this.setupSlider('animation-speed', 'animation-speed-val', (value) => {
+            this.stageBuilder.params.animationSpeed = parseFloat(value);
+        });
+
+        // Camera controls
+        document.getElementById('reset-camera').addEventListener('click', () => {
+            this.camera.position.set(20, 15, 25);
+            this.controls.target.set(0, 5, 0);
+            this.controls.update();
+        });
+
+        document.getElementById('top-view').addEventListener('click', () => {
+            this.camera.position.set(0, 40, 0.1);
+            this.controls.target.set(0, 0, 0);
+            this.controls.update();
+        });
+
+        document.getElementById('front-view').addEventListener('click', () => {
+            this.camera.position.set(0, 8, 35);
+            this.controls.target.set(0, 5, 0);
+            this.controls.update();
+        });
+
+        document.getElementById('side-view').addEventListener('click', () => {
+            this.camera.position.set(35, 8, 0);
+            this.controls.target.set(0, 5, 0);
+            this.controls.update();
+        });
+
+        document.getElementById('auto-rotate').addEventListener('change', (e) => {
+            this.controls.autoRotate = e.target.checked;
+            this.controls.autoRotateSpeed = 1.0;
+        });
+
+        document.getElementById('show-floor').addEventListener('change', (e) => {
+            this.stageBuilder.setFloorVisible(e.target.checked);
+        });
+
+        document.getElementById('show-glb-model').addEventListener('change', (e) => {
+            if (e.target.checked && !this.glbModel) {
+                this.loadGLB();
+            } else if (this.glbModel) {
+                this.glbModel.visible = e.target.checked;
+            }
+        });
+
+        // Export
+        document.getElementById('export-config').addEventListener('click', () => {
+            this.exportConfiguration();
+        });
+    }
+
+    setupSlider(sliderId, displayId, callback) {
+        const slider = document.getElementById(sliderId);
+        const display = document.getElementById(displayId);
+
+        if (slider && display) {
+            slider.addEventListener('input', (e) => {
+                display.textContent = e.target.value;
+                callback(e.target.value);
+            });
+        }
+    }
+
+
+    loadGLB() {
+        const loader = new GLTFLoader();
+
+        loader.load(
+            './assets/1.glb',
+            (gltf) => {
+                this.glbModel = gltf.scene;
+
+                // Center and scale the model
+                const box = new THREE.Box3().setFromObject(this.glbModel);
+                const center = box.getCenter(new THREE.Vector3());
+
+                this.glbModel.position.x = -center.x;
+                this.glbModel.position.y = -box.min.y;
+                this.glbModel.position.z = -center.z;
+
+                // Enable shadows
+                this.glbModel.traverse((child) => {
+                    if (child.isMesh) {
+                        child.castShadow = true;
+                        child.receiveShadow = true;
+                    }
+                });
+
+                this.scene.add(this.glbModel);
+                console.log('GLB Model loaded successfully');
+            },
+            (progress) => {
+                console.log('Loading GLB:', (progress.loaded / progress.total * 100).toFixed(0) + '%');
+            },
+            (error) => {
+                console.error('Error loading GLB:', error);
+            }
+        );
+    }
+
+    exportConfiguration() {
+        const config = {
+            timestamp: new Date().toISOString(),
+            stage: this.stageBuilder.getConfig(),
+            lighting: this.lightingSystem.getConfig(),
+            camera: {
+                position: this.camera.position.toArray(),
+                target: this.controls.target.toArray()
+            }
+        };
+
+        const dataStr = JSON.stringify(config, null, 2);
+        const dataBlob = new Blob([dataStr], { type: 'application/json' });
+        const url = URL.createObjectURL(dataBlob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'palco-config-' + Date.now() + '.json';
+        link.click();
+        URL.revokeObjectURL(url);
+    }
+
+    updateStats() {
+        this.frameCount++;
+        const currentTime = performance.now();
+
+        if (currentTime >= this.lastFrameTime + 1000) {
+            this.stats.fps = this.frameCount;
+            this.frameCount = 0;
+            this.lastFrameTime = currentTime;
+
+            // Count triangles
+            let triangles = 0;
+            this.scene.traverse((obj) => {
+                if (obj.isMesh && obj.geometry) {
+                    if (obj.geometry.index) {
+                        triangles += obj.geometry.index.count / 3;
+                    } else if (obj.geometry.attributes.position) {
+                        triangles += obj.geometry.attributes.position.count / 3;
+                    }
+                }
+            });
+            this.stats.triangles = Math.floor(triangles);
+
+            // Update UI
+            document.getElementById('fps').textContent = this.stats.fps;
+            document.getElementById('tower-stat').textContent = this.stageBuilder.getTowerCount();
+            const panelCounts = this.stageBuilder.getPanelCounts();
+            document.getElementById('panel-external-stat').textContent = panelCounts.external;
+            document.getElementById('panel-boxtruss-stat').textContent = panelCounts.boxTruss;
+            document.getElementById('panel-total-stat').textContent = panelCounts.total;
+            document.getElementById('triangles').textContent = this.stats.triangles.toLocaleString();
+        }
+    }
+
+    onWindowResize() {
+        this.camera.aspect = window.innerWidth / window.innerHeight;
+        this.camera.updateProjectionMatrix();
+        this.renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    animate() {
+        requestAnimationFrame(() => this.animate());
+
+        const delta = this.clock.getDelta();
+
+        // Update controls
+        this.controls.update();
+
+        // Update stage builder (LED animations)
+        this.stageBuilder.update(delta);
+
+        // Update lighting
+        this.lightingSystem.update(delta);
+
+        // Render
+        this.renderer.render(this.scene, this.camera);
+
+        // Update stats
+        this.updateStats();
+    }
+}
+
+// Initialize when DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
+    new PalcoParametrico();
+});

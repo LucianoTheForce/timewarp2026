@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Palco Timewarp - Sistema Parametrico de Torres</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0a0a15;
+            color: #fff;
+            overflow: hidden;
+        }
+
+        #canvas-container {
+            width: 100vw;
+            height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+        }
+
+        #controls {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            width: 340px;
+            background: rgba(15, 15, 30, 0.95);
+            border-radius: 12px;
+            padding: 20px;
+            max-height: 95vh;
+            overflow-y: auto;
+            z-index: 1000;
+            border: 1px solid rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        #controls::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        #controls::-webkit-scrollbar-track {
+            background: rgba(255,255,255,0.05);
+            border-radius: 3px;
+        }
+
+        #controls::-webkit-scrollbar-thumb {
+            background: rgba(255,100,100,0.5);
+            border-radius: 3px;
+        }
+
+        #controls h2 {
+            font-size: 20px;
+            margin-bottom: 15px;
+            color: #ff6b6b;
+            border-bottom: 2px solid #ff6b6b;
+            padding-bottom: 10px;
+            text-align: center;
+        }
+
+        #controls h3 {
+            font-size: 13px;
+            margin: 18px 0 12px;
+            color: #4ecdc4;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .control-group {
+            margin-bottom: 12px;
+        }
+
+        .control-group label {
+            display: block;
+            font-size: 11px;
+            color: #aaa;
+            margin-bottom: 5px;
+        }
+
+        .control-group input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #222;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .control-group input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #ff6b6b, #ff8e53);
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(255,107,107,0.5);
+        }
+
+        .control-group select {
+            width: 100%;
+            padding: 8px 10px;
+            border-radius: 6px;
+            border: 1px solid #333;
+            background: #1a1a2e;
+            color: #fff;
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        .control-group select:focus {
+            border-color: #ff6b6b;
+            outline: none;
+        }
+
+        .value-display {
+            float: right;
+            color: #ff6b6b;
+            font-weight: bold;
+            font-size: 11px;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 10px;
+            margin-top: 8px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: bold;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #ff6b6b, #ff8e53);
+            color: #fff;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(255, 107, 107, 0.4);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #4ecdc4, #44a08d);
+            color: #fff;
+        }
+
+        .btn-secondary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(78, 205, 196, 0.4);
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+            width: 100%;
+        }
+
+        .file-input-wrapper input[type="file"] {
+            position: absolute;
+            left: 0;
+            top: 0;
+            opacity: 0;
+            cursor: pointer;
+            width: 100%;
+            height: 100%;
+        }
+
+        #video-preview {
+            width: 100%;
+            max-height: 120px;
+            margin-top: 10px;
+            border-radius: 6px;
+            display: none;
+            background: #000;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 0;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: #ff6b6b;
+        }
+
+        .checkbox-group label {
+            margin: 0;
+            font-size: 12px;
+        }
+
+        #loading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #0a0a15;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            flex-direction: column;
+        }
+
+        .spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid #222;
+            border-top-color: #ff6b6b;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        #loading p {
+            margin-top: 20px;
+            color: #666;
+            font-size: 14px;
+        }
+
+        .color-picker-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .color-picker-wrapper input[type="color"] {
+            width: 40px;
+            height: 28px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            background: transparent;
+        }
+
+        .info-box {
+            background: rgba(78, 205, 196, 0.1);
+            border: 1px solid rgba(78, 205, 196, 0.3);
+            border-radius: 6px;
+            padding: 10px;
+            font-size: 10px;
+            color: #888;
+            margin: 10px 0;
+        }
+
+        .info-box strong {
+            color: #4ecdc4;
+        }
+
+        .section-divider {
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+            margin: 15px 0;
+        }
+
+        #stats-panel {
+            position: fixed;
+            bottom: 10px;
+            left: 10px;
+            background: rgba(15, 15, 30, 0.9);
+            padding: 12px 18px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-family: 'Consolas', monospace;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        #stats-panel div {
+            margin: 3px 0;
+            color: #888;
+        }
+
+        #stats-panel span {
+            color: #4ecdc4;
+            font-weight: bold;
+        }
+
+        .btn-row {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-row .btn {
+            flex: 1;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <div id="loading">
+        <div class="spinner"></div>
+        <p>Iniciando Sistema Parametrico...</p>
+    </div>
+
+    <div id="canvas-container"></div>
+
+    <div id="controls">
+        <h2>PALCO TIMEWARP</h2>
+
+        <h3>Torres de Andaime</h3>
+
+        <div class="control-group">
+            <label>Quantidade de Torres <span class="value-display" id="tower-count-val">4</span></label>
+            <input type="range" id="tower-count" min="2" max="12" value="4" step="1">
+        </div>
+
+        <div class="control-group">
+            <label>Formato das Torres</label>
+            <select id="tower-shape">
+                <option value="square">Quadrada (4 canos)</option>
+                <option value="rectangular">Retangular (4 canos)</option>
+                <option value="triangular">Triangular (3 canos)</option>
+            </select>
+        </div>
+
+        <div class="control-group">
+            <label>Altura - Niveis de 2m <span class="value-display" id="tower-levels-val">4</span></label>
+            <input type="range" id="tower-levels" min="2" max="10" value="4" step="1">
+        </div>
+
+        <div class="control-group">
+            <label>Raio de Disposicao (m) <span class="value-display" id="layout-radius-val">10</span></label>
+            <input type="range" id="layout-radius" min="5" max="25" value="10" step="0.5">
+        </div>
+
+        <div class="control-group">
+            <label>Disposicao das Torres</label>
+            <select id="layout-type">
+                <option value="circular">Circular</option>
+                <option value="line">Linha</option>
+                <option value="grid">Grade</option>
+            </select>
+        </div>
+
+        <div class="control-group">
+            <label>Espacamento (m) <span class="value-display" id="layout-spacing-val">5</span></label>
+            <input type="range" id="layout-spacing" min="2" max="25" value="5" step="0.5">
+        </div>
+
+        <div class="control-group">
+            <label>Largura da Torre (m) <span class="value-display" id="tower-width-val">2.0</span></label>
+            <input type="range" id="tower-width" min="0.5" max="3" value="2.0" step="0.1">
+        </div>
+
+        <div class="control-group">
+            <label>Profundidade da Torre (m) <span class="value-display" id="tower-depth-val">2.0</span></label>
+            <input type="range" id="tower-depth" min="0.5" max="3" value="2.0" step="0.1">
+        </div>
+
+        <div class="section-divider"></div>
+
+        <h3>Andaimes (Canos 2m)</h3>
+
+        <div class="info-box">
+            <strong>Especificacoes:</strong> Canos de 2m de comprimento padrao para andaimes modulares.
+        </div>
+
+        <div class="control-group">
+            <label>Diametro do Cano (mm) <span class="value-display" id="pipe-diameter-val">48</span></label>
+            <input type="range" id="pipe-diameter" min="30" max="80" value="48" step="2">
+        </div>
+
+        <div class="control-group color-picker-wrapper">
+            <label>Cor dos Canos</label>
+            <input type="color" id="pipe-color" value="#555555">
+        </div>
+
+        <div class="checkbox-group">
+            <input type="checkbox" id="show-diagonal-braces" checked>
+            <label>Mostrar Contraventamentos Diagonais</label>
+        </div>
+
+        <div class="section-divider"></div>
+
+        <h3>LED Box Truss Central (Q50)</h3>
+
+        <div class="info-box">
+            <strong>Modulos 50x50cm</strong> no box truss central de cada torre
+        </div>
+
+        <div class="checkbox-group">
+            <input type="checkbox" id="led-boxtruss-enabled" checked>
+            <label>Ativar LED no Box Truss</label>
+        </div>
+
+        <div class="control-group">
+            <label>Paineis por Face <span class="value-display" id="boxtruss-panels-val">4</span></label>
+            <input type="range" id="boxtruss-panels" min="1" max="20" value="4" step="1">
+        </div>
+
+        <div class="control-group">
+            <label>Faces com LED <span class="value-display" id="boxtruss-faces-val">4</span></label>
+            <input type="range" id="boxtruss-faces" min="1" max="4" value="4" step="1">
+        </div>
+
+        <div class="section-divider"></div>
+
+        <h3>LED Andaimes Externos</h3>
+
+        <div class="info-box">
+            <strong>LR3.9-7.8:</strong> 1000x500mm | Peso: ~6kg
+        </div>
+
+        <div class="checkbox-group">
+            <input type="checkbox" id="led-external-enabled" checked>
+            <label>Ativar LED nos Andaimes</label>
+        </div>
+
+        <div class="control-group">
+            <label>Paineis por Face <span class="value-display" id="external-panels-val">4</span></label>
+            <input type="range" id="external-panels" min="1" max="20" value="4" step="1">
+        </div>
+
+        <div class="control-group">
+            <label>Faces com LED <span class="value-display" id="external-faces-val">4</span></label>
+            <input type="range" id="external-faces" min="1" max="4" value="4" step="1">
+        </div>
+
+        <div class="section-divider"></div>
+
+        <h3>Conteudo de Video</h3>
+
+        <div class="file-input-wrapper">
+            <button class="btn btn-secondary">Carregar Video Local</button>
+            <input type="file" id="video-upload" accept="video/*">
+        </div>
+
+        <video id="video-preview" loop muted></video>
+
+        <div class="control-group" style="margin-top: 10px;">
+            <label>URL do Video (MP4, WebM)</label>
+            <input type="text" id="video-url" placeholder="https://exemplo.com/video.mp4" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #333; background: #1a1a2e; color: #fff; font-size: 11px;">
+        </div>
+
+        <button class="btn btn-primary" id="apply-video">Aplicar Video aos Paineis</button>
+
+        <div class="btn-row" style="margin-top: 8px;">
+            <button class="btn btn-secondary" id="play-video">Play</button>
+            <button class="btn btn-secondary" id="pause-video">Pause</button>
+        </div>
+
+        <div class="section-divider"></div>
+
+        <h3>Efeitos LED</h3>
+
+        <div class="control-group">
+            <label>Modo de Cor</label>
+            <select id="led-effect">
+                <option value="solid">Cor Solida</option>
+                <option value="rainbow">Arco-Iris</option>
+                <option value="pulse">Pulsar</option>
+                <option value="wave">Onda</option>
+                <option value="video">Video</option>
+            </select>
+        </div>
+
+        <div class="control-group color-picker-wrapper">
+            <label>Cor Base LED</label>
+            <input type="color" id="led-color" value="#ff0066">
+        </div>
+
+        <div class="control-group">
+            <label>Intensidade <span class="value-display" id="led-intensity-val">1.0</span></label>
+            <input type="range" id="led-intensity" min="0" max="3" value="1" step="0.1">
+        </div>
+
+        <div class="control-group">
+            <label>Velocidade da Animacao <span class="value-display" id="animation-speed-val">1.0</span></label>
+            <input type="range" id="animation-speed" min="0.1" max="5" value="1" step="0.1">
+        </div>
+
+        <div class="section-divider"></div>
+
+        <h3>Camera e Visualizacao</h3>
+
+        <button class="btn btn-secondary" id="reset-camera">Reset Camera</button>
+
+        <div class="btn-row">
+            <button class="btn btn-secondary" id="top-view">Topo</button>
+            <button class="btn btn-secondary" id="front-view">Frente</button>
+            <button class="btn btn-secondary" id="side-view">Lado</button>
+        </div>
+
+        <div class="checkbox-group">
+            <input type="checkbox" id="auto-rotate">
+            <label>Rotacao Automatica</label>
+        </div>
+
+        <div class="checkbox-group">
+            <input type="checkbox" id="show-floor" checked>
+            <label>Mostrar Piso</label>
+        </div>
+
+        <div class="checkbox-group">
+            <input type="checkbox" id="show-glb-model">
+            <label>Mostrar Modelo GLB Original</label>
+        </div>
+
+        <div class="section-divider"></div>
+
+        <button class="btn btn-primary" id="export-config">Exportar Configuracao</button>
+    </div>
+
+    <div id="stats-panel">
+        <div>FPS: <span id="fps">0</span></div>
+        <div>Torres: <span id="tower-stat">0</span></div>
+        <div>LED Externo 1000x500: <span id="panel-external-stat">0</span></div>
+        <div>LED BoxTruss 500x500: <span id="panel-boxtruss-stat">0</span></div>
+        <div>Total de Paineis: <span id="panel-total-stat">0</span></div>
+        <div>Triangulos: <span id="triangles">0</span></div>
+    </div>
+
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+        }
+    }
+    </script>
+    <script type="module" src="./js/main.js"></script>
+</body>
+</html>
