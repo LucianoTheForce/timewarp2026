@@ -378,11 +378,9 @@ class PalcoParametrico {
 
                 // Center and scale the model
                 const box = new THREE.Box3().setFromObject(this.glbModel);
-                const center = box.getCenter(new THREE.Vector3());
 
-                this.glbModel.position.x = -center.x;
-                this.glbModel.position.y = -box.min.y;
-                this.glbModel.position.z = -center.z;
+                // Encostar no piso em y=0 e alinhar no ponto 0 global
+                this.glbModel.position.set(0, -box.min.y, 0);
 
                 // Enable shadows
                 this.glbModel.traverse((child) => {
