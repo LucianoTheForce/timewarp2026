@@ -37,7 +37,7 @@ export class StageBuilder {
             layoutType: 'grid', // 'circular', 'line', 'grid'
             layoutRows: 5,
             layoutCols: 2,
-            layoutSpacingX: 20,
+            layoutSpacingX: 32,
             layoutSpacingY: 8,
             towerWidth: 2.0, // 2x2 metros
             towerDepth: 2.0,
