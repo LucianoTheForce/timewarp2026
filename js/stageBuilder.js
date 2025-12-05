@@ -21,6 +21,10 @@ export class StageBuilder {
         this.dimensionGroup.name = 'dimensions';
         this.scene.add(this.dimensionGroup);
 
+        this.backScaffoldGroup = new THREE.Group();
+        this.backScaffoldGroup.name = 'backScaffold';
+        this.scene.add(this.backScaffoldGroup);
+
         this.floor = null;
 
         // Parameters - default values
@@ -52,6 +56,7 @@ export class StageBuilder {
             frontWidth: 8.0,
             frontDepth: 2.5,
             showDimensions: true,
+            backScaffoldEnabled: true,
 
             // Pipe params (2m standard)
             pipeLength: 2.0, // Fixed 2m pipes
@@ -295,6 +300,7 @@ export class StageBuilder {
         this.clearLedGlassPanels();
         this.clearStageDeck();
         this.clearDimensions();
+        this.clearBackScaffold();
         this.allLedPanels = [];
         this.stageDeck.position.set(0, 0, 0);
 
@@ -303,6 +309,10 @@ export class StageBuilder {
         if (this.params.stageDeckEnabled) {
             this.buildStageDeck();
             this.alignStageDeckToFront();
+        }
+
+        if (this.params.backScaffoldEnabled) {
+            this.buildBackScaffold();
         }
 
         if (this.params.showDimensions) {
@@ -342,6 +352,15 @@ export class StageBuilder {
             if (child.geometry) child.geometry.dispose();
             if (child.material) child.material.dispose();
             this.stageDeck.remove(child);
+        }
+    }
+
+    clearBackScaffold() {
+        while (this.backScaffoldGroup.children.length > 0) {
+            const child = this.backScaffoldGroup.children[0];
+            if (child.geometry) child.geometry.dispose();
+            if (child.material) child.material.dispose();
+            this.backScaffoldGroup.remove(child);
         }
     }
 
@@ -521,6 +540,24 @@ export class StageBuilder {
         return sprite;
     }
 
+    buildBackScaffold() {
+        const deckBox = new THREE.Box3().setFromObject(this.stageDeck);
+        if (!isFinite(deckBox.min.x) || !isFinite(deckBox.max.x)) return;
+
+        const width = deckBox.max.x - deckBox.min.x;
+        const count = Math.max(2, Math.round(width / this.params.towerWidth));
+        const spacing = count > 1 ? width / (count - 1) : 0;
+        const startX = deckBox.min.x;
+        const z = deckBox.max.z + this.params.towerDepth / 2 + 0.05; // encostado atrás
+
+        for (let i = 0; i < count; i++) {
+            const tower = this.createTower('square', i);
+            const x = startX + spacing * i;
+            tower.position.set(x, 0, z);
+            tower.rotation.y = 0;
+            this.backScaffoldGroup.add(tower);
+        }
+    }
     isRearFace(towerPosition, faceIndex) {
         // Face indices: 0=+X, 1=+Z, 2=-X, 3=-Z (com facingAngle=0)
         if (towerPosition.x < 0) {
