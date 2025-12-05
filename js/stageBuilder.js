@@ -369,14 +369,14 @@ export class StageBuilder {
         if (this.towersGroup.children.length === 0 || this.stageDeck.children.length === 0) return;
 
         const towerBox = new THREE.Box3().setFromObject(this.towersGroup);
-        const frontZ = towerBox.min.z; // menor Z = frente
+        const frontZ = towerBox.min.z; // menor Z = frente das torres
 
         const deckBox = new THREE.Box3().setFromObject(this.stageDeck);
-        const deckFront = deckBox.min.z;
+        const deckBack = deckBox.max.z; // parte mais perto das torres
 
-        // Empurrar o deck 6m para frente (fora da linha da primeira torre)
-        const targetFront = frontZ - 6.0;
-        const deltaZ = targetFront - deckFront;
+        // Garantir 6m de afastamento: deck termina 6m antes da frente das torres
+        const targetBack = frontZ - 6.0;
+        const deltaZ = targetBack - deckBack;
         this.stageDeck.position.z += deltaZ;
     }
 
