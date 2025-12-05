@@ -39,6 +39,14 @@ export class StageBuilder {
             deckModuleSize: 1.25,
             deckHeight: 1.33,
             deckThickness: 0.2,
+            backstageLeftWidth: 8.75,
+            backstageCenterWidth: 13.75,
+            backstageRightWidth: 8.75,
+            backstageDepth: 7.5,
+            djWidth: 8.0,
+            djDepth: 3.75,
+            frontWidth: 8.0,
+            frontDepth: 2.5,
 
             // Pipe params (2m standard)
             pipeLength: 2.0, // Fixed 2m pipes
@@ -310,17 +318,36 @@ export class StageBuilder {
         const module = this.params.deckModuleSize;
         const height = this.params.deckHeight;
         const thickness = this.params.deckThickness;
+        const {
+            backstageLeftWidth,
+            backstageCenterWidth,
+            backstageRightWidth,
+            backstageDepth,
+            djWidth,
+            djDepth,
+            frontWidth,
+            frontDepth
+        } = this.params;
         const y = height - thickness / 2;
+
+        const totalBackWidth = backstageLeftWidth + backstageCenterWidth + backstageRightWidth;
+        const xLeft = -totalBackWidth / 2 + backstageLeftWidth / 2;
+        const xCenter = xLeft + backstageLeftWidth / 2 + backstageCenterWidth / 2;
+        const xRight = totalBackWidth / 2 - backstageRightWidth / 2;
+
+        const zBack = -backstageDepth / 2;
+        const zFrontStage = -(backstageDepth + frontDepth / 2);
+        const zDj = -(backstageDepth / 2 - djDepth / 2);
 
         const blocks = [
             // Green backstage blocks
-            { w: 8.75, d: 7.5, x: -11.25, z: -3.75, color: 0x7fcf90 },
-            { w: 13.75, d: 7.5, x: 0, z: -3.75, color: 0x7fcf90 },
-            { w: 8.75, d: 7.5, x: 11.25, z: -3.75, color: 0x7fcf90 },
+            { w: backstageLeftWidth, d: backstageDepth, x: xLeft, z: zBack, color: 0x7fcf90 },
+            { w: backstageCenterWidth, d: backstageDepth, x: xCenter, z: zBack, color: 0x7fcf90 },
+            { w: backstageRightWidth, d: backstageDepth, x: xRight, z: zBack, color: 0x7fcf90 },
             // Pink DJ area
-            { w: 8.0, d: 3.75, x: 0, z: -2.0, color: 0xf6a6d8 },
+            { w: djWidth, d: djDepth, x: 0, z: zDj, color: 0xf6a6d8 },
             // Gray front stage
-            { w: 8.0, d: 2.5, x: 0, z: -(7.5 + 1.25), color: 0x8a8a8a }
+            { w: frontWidth, d: frontDepth, x: 0, z: zFrontStage, color: 0x8a8a8a }
         ];
 
         const deckMat = (hex) =>
@@ -890,7 +917,15 @@ export class StageBuilder {
                 enabled: this.params.stageDeckEnabled,
                 moduleSize: this.params.deckModuleSize,
                 height: this.params.deckHeight,
-                thickness: this.params.deckThickness
+                thickness: this.params.deckThickness,
+                backstageLeftWidth: this.params.backstageLeftWidth,
+                backstageCenterWidth: this.params.backstageCenterWidth,
+                backstageRightWidth: this.params.backstageRightWidth,
+                backstageDepth: this.params.backstageDepth,
+                djWidth: this.params.djWidth,
+                djDepth: this.params.djDepth,
+                frontWidth: this.params.frontWidth,
+                frontDepth: this.params.frontDepth
             },
             centralPanel: {
                 type: this.params.centralPanelType,

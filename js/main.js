@@ -288,6 +288,35 @@ class PalcoParametrico {
             this.stageBuilder.setParam('stageDeckEnabled', e.target.checked);
         });
 
+        // Stage deck sizing
+        this.setupSlider('deck-back-left', 'deck-back-left-val', (value) => {
+            this.stageBuilder.setParam('backstageLeftWidth', parseFloat(value));
+        });
+        this.setupSlider('deck-back-center', 'deck-back-center-val', (value) => {
+            this.stageBuilder.setParam('backstageCenterWidth', parseFloat(value));
+        });
+        this.setupSlider('deck-back-right', 'deck-back-right-val', (value) => {
+            this.stageBuilder.setParam('backstageRightWidth', parseFloat(value));
+        });
+        this.setupSlider('deck-back-depth', 'deck-back-depth-val', (value) => {
+            this.stageBuilder.setParam('backstageDepth', parseFloat(value));
+        });
+        this.setupSlider('deck-dj-width', 'deck-dj-width-val', (value) => {
+            this.stageBuilder.setParam('djWidth', parseFloat(value));
+        });
+        this.setupSlider('deck-dj-depth', 'deck-dj-depth-val', (value) => {
+            this.stageBuilder.setParam('djDepth', parseFloat(value));
+        });
+        this.setupSlider('deck-front-width', 'deck-front-width-val', (value) => {
+            this.stageBuilder.setParam('frontWidth', parseFloat(value));
+        });
+        this.setupSlider('deck-front-depth', 'deck-front-depth-val', (value) => {
+            this.stageBuilder.setParam('frontDepth', parseFloat(value));
+        });
+        this.setupSlider('deck-height', 'deck-height-val', (value) => {
+            this.stageBuilder.setParam('deckHeight', parseFloat(value));
+        });
+
         document.getElementById('show-glb-model').addEventListener('change', (e) => {
             if (e.target.checked && !this.glbModel) {
                 this.loadGLB();
