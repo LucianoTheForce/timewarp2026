@@ -715,7 +715,8 @@ export class StageBuilder {
         // Laterais com aberturas perto dos cantos (escadas na lateral)
         const margin = 0.05;
         const gapD = stairsWidth + 0.2;
-        const gapCenterZ = deckBox.min.z + stairsWidth / 2 + margin; // canto frontal
+        const extraOffset = 0.5; // recuar um pouco a escada para dentro do palco
+        const gapCenterZ = deckBox.min.z + stairsWidth / 2 + margin + extraOffset; // canto frontal
 
         const addSideWithGap = (xPos) => {
             const gapMin = gapCenterZ - gapD / 2;
@@ -747,7 +748,7 @@ export class StageBuilder {
         const margin = 0.05;
 
         // Escadas na lateral frontal esquerda/direita, degraus entrando no palco (eixo +X para esquerda, -X para direita)
-        const zPos = deckBox.min.z + stairsWidth / 2 + margin;
+        const zPos = deckBox.min.z + stairsWidth / 2 + margin + 0.5; // recuado para dentro do palco
         const leftStartX = deckBox.min.x - stepD / 2 - margin;
         const rightStartX = deckBox.max.x + stepD / 2 + margin;
 
