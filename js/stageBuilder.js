@@ -521,6 +521,19 @@ export class StageBuilder {
         return sprite;
     }
 
+    isRearFace(towerPosition, faceIndex) {
+        // Face indices: 0=+X, 1=+Z, 2=-X, 3=-Z (com facingAngle=0)
+        if (towerPosition.x < 0) {
+            // Torres do lado esquerdo: traseira = face -X (2)
+            return faceIndex === 2;
+        } else if (towerPosition.x > 0) {
+            // Torres do lado direito: traseira = face +X (0)
+            return faceIndex === 0;
+        }
+        // Centro: não remover
+        return false;
+    }
+
     buildTowers() {
         const {
             towerCount,
@@ -780,7 +793,7 @@ export class StageBuilder {
 
                     const panelGeom = new THREE.BoxGeometry(panelSize, panelSize, 0.05);
 
-                    const isBackFace = face === 2;
+                    const isBackFace = this.params.hideRearPanels && this.isRearFace(tower.position, face);
                     if (this.params.hideRearPanels && isBackFace) {
                         const cloth = new THREE.Mesh(panelGeom, this.clothMaterial.clone());
                         cloth.position.copy(tower.position);
@@ -857,24 +870,33 @@ export class StageBuilder {
                         const y = yPositions[panelIndex] ?? totalHeight / 2;
 
                         const panelGeom = new THREE.BoxGeometry(ledExternalWidth, ledExternalHeight, 0.05);
-                        const panelMat = this.ledExternalMaterial.clone();
-                        const panel = new THREE.Mesh(panelGeom, panelMat);
-
-                        panel.position.copy(tower.position);
-                        panel.position.y = y;
+                        const isBackFace = this.params.hideRearPanels && this.isRearFace(tower.position, face);
+                        const faceAngle = angle + (face * Math.PI / 2);
 
                         // Offset normal para fora do andaime externo
-                        const faceAngle = angle + (face * Math.PI / 2);
-                        panel.position.x += Math.cos(faceAngle) * panelOffset;
-                        panel.position.z += Math.sin(faceAngle) * panelOffset;
+                        const baseX = tower.position.x + Math.cos(faceAngle) * panelOffset;
+                        const baseZ = tower.position.z + Math.sin(faceAngle) * panelOffset;
 
                         // Offset tangencial (coluna) para permitir 1 ou 2 por linha
                         const tangentX = -Math.sin(faceAngle);
                         const tangentZ = Math.cos(faceAngle);
                         const colOffset = (colCount === 1) ? 0 : (col === 0 ? -colSpacing / 2 : colSpacing / 2);
-                        panel.position.x += tangentX * colOffset;
-                        panel.position.z += tangentZ * colOffset;
+                        const posX = baseX + tangentX * colOffset;
+                        const posZ = baseZ + tangentZ * colOffset;
 
+                        if (isBackFace) {
+                            const cloth = new THREE.Mesh(panelGeom, this.clothMaterial.clone());
+                            cloth.position.set(posX, y, posZ);
+                            cloth.rotation.y = -faceAngle + Math.PI / 2;
+                            cloth.userData.type = 'cloth';
+                            this.ledGlassPanels.add(cloth);
+                            continue;
+                        }
+
+                        const panelMat = this.ledExternalMaterial.clone();
+                        const panel = new THREE.Mesh(panelGeom, panelMat);
+
+                        panel.position.set(posX, y, posZ);
                         panel.rotation.y = -faceAngle + Math.PI / 2;
 
                         panel.userData.towerIndex = towerIndex;
