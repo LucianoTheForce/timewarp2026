@@ -177,6 +177,10 @@ class PalcoParametrico {
             this.stageBuilder.setParam('ledExternalFaces', parseInt(value));
         });
 
+        this.setupSlider('external-panels-row', 'external-panels-row-val', (value) => {
+            this.stageBuilder.setParam('ledExternalPanelsPerRow', parseInt(value));
+        });
+
         // Video controls
         document.getElementById('video-upload').addEventListener('change', (e) => {
             const file = e.target.files[0];
@@ -216,12 +220,30 @@ class PalcoParametrico {
         document.getElementById('led-color').addEventListener('input', (e) => {
             const color = parseInt(e.target.value.replace('#', ''), 16);
             this.stageBuilder.params.ledColor = color;
-            this.stageBuilder.updateLedColor(color);
+            this.stageBuilder.updateLedColorForType('all', color);
+        });
+
+        document.getElementById('led-color-box').addEventListener('input', (e) => {
+            const color = parseInt(e.target.value.replace('#', ''), 16);
+            this.stageBuilder.setParam('ledBoxTrussColor', color);
+        });
+
+        document.getElementById('led-color-external').addEventListener('input', (e) => {
+            const color = parseInt(e.target.value.replace('#', ''), 16);
+            this.stageBuilder.setParam('ledExternalColor', color);
         });
 
         this.setupSlider('led-intensity', 'led-intensity-val', (value) => {
             this.stageBuilder.params.ledIntensity = parseFloat(value);
-            this.stageBuilder.updateLedIntensity(parseFloat(value));
+            this.stageBuilder.updateLedIntensityForType('all', parseFloat(value));
+        });
+
+        this.setupSlider('led-intensity-box', 'led-intensity-box-val', (value) => {
+            this.stageBuilder.setParam('ledBoxTrussIntensity', parseFloat(value));
+        });
+
+        this.setupSlider('led-intensity-external', 'led-intensity-external-val', (value) => {
+            this.stageBuilder.setParam('ledExternalIntensity', parseFloat(value));
         });
 
         this.setupSlider('animation-speed', 'animation-speed-val', (value) => {

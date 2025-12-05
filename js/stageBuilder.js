@@ -57,7 +57,8 @@ export class StageBuilder {
 
         // Materials
         this.pipeMaterial = null;
-        this.ledGlassMaterial = null;
+        this.ledBoxMaterial = null;
+        this.ledExternalMaterial = null;
         this.centralPanelMaterial = null;
 
         // Video texture
@@ -82,12 +83,25 @@ export class StageBuilder {
         });
 
         // Painel LED com textura e emissao apenas na face frontal (verso sem luz)
-        this.ledGlassMaterial = new THREE.MeshStandardMaterial({
+        this.ledBoxMaterial = new THREE.MeshStandardMaterial({
             color: 0x111111,
             map: ledTexture,
             emissiveMap: ledTexture,
-            emissive: this.params.ledColor,
-            emissiveIntensity: this.params.ledIntensity,
+            emissive: this.params.ledBoxTrussColor,
+            emissiveIntensity: this.params.ledBoxTrussIntensity,
+            transparent: true,
+            opacity: 0.65,
+            metalness: 0.3,
+            roughness: 0.4,
+            side: THREE.FrontSide
+        });
+
+        this.ledExternalMaterial = new THREE.MeshStandardMaterial({
+            color: 0x111111,
+            map: ledTexture,
+            emissiveMap: ledTexture,
+            emissive: this.params.ledExternalColor,
+            emissiveIntensity: this.params.ledExternalIntensity,
             transparent: true,
             opacity: 0.65,
             metalness: 0.3,
@@ -97,8 +111,8 @@ export class StageBuilder {
 
         this.centralPanelMaterial = new THREE.MeshStandardMaterial({
             color: 0x111111,
-            emissive: this.params.ledColor,
-            emissiveIntensity: this.params.ledIntensity,
+            emissive: this.params.ledBoxTrussColor,
+            emissiveIntensity: this.params.ledBoxTrussIntensity,
             metalness: 0.1,
             roughness: 0.3,
             side: THREE.FrontSide
@@ -168,9 +182,21 @@ export class StageBuilder {
         if (key === 'pipeColor') {
             this.pipeMaterial.color.setHex(value);
         } else if (key === 'ledColor') {
-            this.updateLedColor(value);
+            this.params.ledBoxTrussColor = value;
+            this.params.ledExternalColor = value;
+            this.updateLedColorForType('all', value);
         } else if (key === 'ledIntensity') {
-            this.updateLedIntensity(value);
+            this.params.ledBoxTrussIntensity = value;
+            this.params.ledExternalIntensity = value;
+            this.updateLedIntensityForType('all', value);
+        } else if (key === 'ledBoxTrussColor') {
+            this.updateLedColorForType('ledBoxTruss', value);
+        } else if (key === 'ledExternalColor') {
+            this.updateLedColorForType('ledExternal', value);
+        } else if (key === 'ledBoxTrussIntensity') {
+            this.updateLedIntensityForType('ledBoxTruss', value);
+        } else if (key === 'ledExternalIntensity') {
+            this.updateLedIntensityForType('ledExternal', value);
         } else if (key === 'ledEffect' && value === 'video') {
             // Switch to video mode
         } else {
@@ -179,18 +205,37 @@ export class StageBuilder {
         }
     }
 
-    updateLedColor(color) {
+    updateLedColorForType(type, color) {
         const colorObj = new THREE.Color(color);
+
+        if (type === 'ledBoxTruss' || type === 'all') {
+            if (this.ledBoxMaterial) this.ledBoxMaterial.emissive.copy(colorObj);
+            if (this.centralPanelMaterial) this.centralPanelMaterial.emissive.copy(colorObj);
+        }
+        if (type === 'ledExternal' || type === 'all') {
+            if (this.ledExternalMaterial) this.ledExternalMaterial.emissive.copy(colorObj);
+        }
+
         this.allLedPanels.forEach(panel => {
-            if (panel.material && panel.material.emissive) {
+            if (!panel.material || !panel.material.emissive) return;
+            if (type === 'all' || panel.userData.type === type) {
                 panel.material.emissive.copy(colorObj);
             }
         });
     }
 
-    updateLedIntensity(intensity) {
+    updateLedIntensityForType(type, intensity) {
+        if (type === 'ledBoxTruss' || type === 'all') {
+            if (this.ledBoxMaterial) this.ledBoxMaterial.emissiveIntensity = intensity;
+            if (this.centralPanelMaterial) this.centralPanelMaterial.emissiveIntensity = intensity;
+        }
+        if (type === 'ledExternal' || type === 'all') {
+            if (this.ledExternalMaterial) this.ledExternalMaterial.emissiveIntensity = intensity;
+        }
+
         this.allLedPanels.forEach(panel => {
-            if (panel.material) {
+            if (!panel.material) return;
+            if (type === 'all' || panel.userData.type === type) {
                 panel.material.emissiveIntensity = intensity;
             }
         });
@@ -490,7 +535,7 @@ export class StageBuilder {
                     const y = yPositions[panelIndex] ?? totalHeight / 2;
 
                     const panelGeom = new THREE.BoxGeometry(panelSize, panelSize, 0.05);
-                    const panelMat = this.ledGlassMaterial.clone();
+                    const panelMat = this.ledBoxMaterial.clone();
                     const panel = new THREE.Mesh(panelGeom, panelMat);
 
                     panel.position.copy(tower.position);
@@ -516,7 +561,16 @@ export class StageBuilder {
 
     // LED nos Andaimes Externos (1000x500mm)
     buildLedExternalPanels() {
-        const { ledExternalWidth, ledExternalHeight, ledExternalPanelsPerFace, ledExternalFaces, towerLevels, pipeLength, towerWidth } = this.params;
+        const {
+            ledExternalWidth,
+            ledExternalHeight,
+            ledExternalPanelsPerFace,
+            ledExternalFaces,
+            ledExternalPanelsPerRow,
+            towerLevels,
+            pipeLength,
+            towerWidth
+        } = this.params;
 
         const panelOffset = towerWidth / 2 + 0.05; // Fora do andaime externo
         const totalHeight = towerLevels * pipeLength;
@@ -532,34 +586,46 @@ export class StageBuilder {
             }
         }
 
+        const colCount = Math.max(1, Math.min(ledExternalPanelsPerRow || 1, 2));
+        const colSpacing = ledExternalWidth + 0.1;
+
         this.towersGroup.children.forEach((tower, towerIndex) => {
             const angle = tower.userData.angle;
 
             for (let face = 0; face < ledExternalFaces; face++) {
                 for (let panelIndex = 0; panelIndex < ledExternalPanelsPerFace; panelIndex++) {
-                    const y = yPositions[panelIndex] ?? totalHeight / 2;
+                    for (let col = 0; col < colCount; col++) {
+                        const y = yPositions[panelIndex] ?? totalHeight / 2;
 
-                    const panelGeom = new THREE.BoxGeometry(ledExternalWidth, ledExternalHeight, 0.05);
-                    const panelMat = this.ledGlassMaterial.clone();
-                    const panel = new THREE.Mesh(panelGeom, panelMat);
+                        const panelGeom = new THREE.BoxGeometry(ledExternalWidth, ledExternalHeight, 0.05);
+                        const panelMat = this.ledExternalMaterial.clone();
+                        const panel = new THREE.Mesh(panelGeom, panelMat);
 
-                    panel.position.copy(tower.position);
-                    panel.position.y = y;
+                        panel.position.copy(tower.position);
+                        panel.position.y = y;
 
-                    // Offset para fora do andaime externo
-                    const faceAngle = angle + (face * Math.PI / 2);
-                    panel.position.x += Math.cos(faceAngle) * panelOffset;
-                    panel.position.z += Math.sin(faceAngle) * panelOffset;
+                        // Offset normal para fora do andaime externo
+                        const faceAngle = angle + (face * Math.PI / 2);
+                        panel.position.x += Math.cos(faceAngle) * panelOffset;
+                        panel.position.z += Math.sin(faceAngle) * panelOffset;
 
-                    panel.rotation.y = -faceAngle + Math.PI / 2;
+                        // Offset tangencial (coluna) para permitir 1 ou 2 por linha
+                        const tangentX = -Math.sin(faceAngle);
+                        const tangentZ = Math.cos(faceAngle);
+                        const colOffset = (colCount === 1) ? 0 : (col === 0 ? -colSpacing / 2 : colSpacing / 2);
+                        panel.position.x += tangentX * colOffset;
+                        panel.position.z += tangentZ * colOffset;
 
-                    panel.userData.towerIndex = towerIndex;
-                    panel.userData.panelIndex = panelIndex;
-                    panel.userData.face = face;
-                    panel.userData.type = 'ledExternal';
+                        panel.rotation.y = -faceAngle + Math.PI / 2;
 
-                    this.ledGlassPanels.add(panel);
-                    this.allLedPanels.push(panel);
+                        panel.userData.towerIndex = towerIndex;
+                        panel.userData.panelIndex = panelIndex;
+                        panel.userData.face = face;
+                        panel.userData.type = 'ledExternal';
+
+                        this.ledGlassPanels.add(panel);
+                        this.allLedPanels.push(panel);
+                    }
                 }
             }
         });
@@ -628,30 +694,41 @@ export class StageBuilder {
             return;
         }
 
+        const boxColor = new THREE.Color(this.params.ledBoxTrussColor);
+        const extColor = new THREE.Color(this.params.ledExternalColor);
+        const boxIntensity = this.params.ledBoxTrussIntensity;
+        const extIntensity = this.params.ledExternalIntensity;
+
         this.allLedPanels.forEach((panel, index) => {
             if (!panel.material || !panel.material.emissive) return;
+
+            const isExternal = panel.userData.type === 'ledExternal';
+            const baseColor = isExternal ? extColor : boxColor;
+            const baseIntensity = isExternal ? extIntensity : boxIntensity;
 
             switch (this.params.ledEffect) {
                 case 'rainbow':
                     const hue = (this.time * 0.2 + index * 0.05) % 1;
                     panel.material.emissive.setHSL(hue, 1, 0.5);
+                    panel.material.emissiveIntensity = baseIntensity;
                     break;
 
                 case 'pulse':
                     const pulse = (Math.sin(this.time * 3) + 1) / 2;
-                    panel.material.emissiveIntensity = this.params.ledIntensity * pulse;
+                    panel.material.emissive.copy(baseColor);
+                    panel.material.emissiveIntensity = baseIntensity * pulse;
                     break;
 
                 case 'wave':
                     const wave = (Math.sin(this.time * 2 + index * 0.3) + 1) / 2;
-                    const baseColor = new THREE.Color(this.params.ledColor);
                     panel.material.emissive.copy(baseColor);
-                    panel.material.emissiveIntensity = this.params.ledIntensity * wave;
+                    panel.material.emissiveIntensity = baseIntensity * wave;
                     break;
 
                 case 'solid':
                 default:
-                    // Solid color - no animation needed
+                    panel.material.emissive.copy(baseColor);
+                    panel.material.emissiveIntensity = baseIntensity;
                     break;
             }
         });
@@ -716,6 +793,11 @@ export class StageBuilder {
                 ledEffect: this.params.ledEffect,
                 ledColor: this.params.ledColor,
                 ledIntensity: this.params.ledIntensity,
+                ledBoxTrussColor: this.params.ledBoxTrussColor,
+                ledBoxTrussIntensity: this.params.ledBoxTrussIntensity,
+                ledExternalColor: this.params.ledExternalColor,
+                ledExternalIntensity: this.params.ledExternalIntensity,
+                ledExternalPanelsPerRow: this.params.ledExternalPanelsPerRow,
                 animationSpeed: this.params.animationSpeed
             }
         };
