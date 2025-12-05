@@ -63,10 +63,10 @@ export class StageBuilder {
             backstageCenterWidth: 13.75,
             backstageRightWidth: 8.75,
             backstageDepth: 7.5,
-            djWidth: 8.0,
+            djWidth: 8.75,
             djDepth: 3.75,
-            frontWidth: 8.0,
-            frontDepth: 2.5,
+            frontWidth: 0.0,
+            frontDepth: 0.0,
             showDimensions: false,
             backScaffoldEnabled: true,
             railingsEnabled: true,
@@ -471,8 +471,6 @@ export class StageBuilder {
             backstageDepth,
             djWidth,
             djDepth,
-            frontWidth,
-            frontDepth
         } = this.params;
         const y = height - thickness / 2;
 
@@ -482,18 +480,13 @@ export class StageBuilder {
         const xRight = totalBackWidth / 2 - backstageRightWidth / 2;
 
         const zBack = -backstageDepth / 2;
-        const zFrontStage = -(backstageDepth + frontDepth / 2);
         const zDj = -(backstageDepth / 2 - djDepth / 2);
 
+        // Palco unificado (verde)
         const blocks = [
-            // Green backstage blocks
             { w: backstageLeftWidth, d: backstageDepth, x: xLeft, z: zBack, color: 0x7fcf90 },
             { w: backstageCenterWidth, d: backstageDepth, x: xCenter, z: zBack, color: 0x7fcf90 },
-            { w: backstageRightWidth, d: backstageDepth, x: xRight, z: zBack, color: 0x7fcf90 },
-            // Pink DJ area
-            { w: djWidth, d: djDepth, x: 0, z: zDj, color: 0xf6a6d8 },
-            // Gray front stage
-            { w: frontWidth, d: frontDepth, x: 0, z: zFrontStage, color: 0x8a8a8a }
+            { w: backstageRightWidth, d: backstageDepth, x: xRight, z: zBack, color: 0x7fcf90 }
         ];
 
         const deckMat = (hex) =>
@@ -536,6 +529,22 @@ export class StageBuilder {
                 this.stageDeck.add(line);
             }
         });
+
+        // Área DJ apenas sinalizada (7x3 módulos)
+        const djW = deckModuleSize * 7;
+        const djD = deckModuleSize * 3;
+        const djMat = new THREE.MeshStandardMaterial({
+            color: 0xf6a6d8,
+            roughness: 0.6,
+            metalness: 0.05,
+            transparent: true,
+            opacity: 0.6
+        });
+        const djGeom = new THREE.BoxGeometry(djW, 0.02, djD);
+        const djMesh = new THREE.Mesh(djGeom, djMat);
+        djMesh.position.set(0, height + 0.01, zDj);
+        djMesh.userData.type = 'djArea';
+        this.stageDeck.add(djMesh);
     }
 
     alignStageDeckToFront() {
@@ -1294,12 +1303,8 @@ export class StageBuilder {
         const towerDepth = this.params.towerDepth;
 
         const totalBackWidth = this.params.backstageLeftWidth + this.params.backstageCenterWidth + this.params.backstageRightWidth;
-        const stageWidth = Math.max(
-            totalBackWidth,
-            this.params.djWidth,
-            this.params.frontWidth
-        );
-        const stageDepth = this.params.backstageDepth + this.params.frontDepth;
+        const stageWidth = totalBackWidth;
+        const stageDepth = this.params.backstageDepth;
 
         return {
             towers: { width: towerWidth, depth: towerDepth, height: towerHeight },
