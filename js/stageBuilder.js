@@ -193,6 +193,11 @@ export class StageBuilder {
         if (this.gridHelper) this.gridHelper.visible = visible;
     }
 
+    setTowersVisible(visible) {
+        this.towersGroup.visible = visible;
+        this.ledGlassPanels.visible = visible;
+    }
+
     updateParams(newParams) {
         Object.assign(this.params, newParams);
         this.rebuild();
@@ -882,6 +887,29 @@ export class StageBuilder {
             else if (panel.userData.type === 'ledExternal') external++;
         });
         return { boxTruss, external, total: boxTruss + external };
+    }
+
+    getDimensions() {
+        const towerHeight = this.params.towerLevels * this.params.pipeLength;
+        const towerWidth = this.params.towerWidth;
+        const towerDepth = this.params.towerDepth;
+
+        const totalBackWidth = this.params.backstageLeftWidth + this.params.backstageCenterWidth + this.params.backstageRightWidth;
+        const stageWidth = Math.max(
+            totalBackWidth,
+            this.params.djWidth,
+            this.params.frontWidth
+        );
+        const stageDepth = this.params.backstageDepth + this.params.frontDepth;
+
+        return {
+            towers: { width: towerWidth, depth: towerDepth, height: towerHeight },
+            stage: {
+                width: stageWidth,
+                depth: stageDepth,
+                height: this.params.deckHeight
+            }
+        };
     }
 
     // Export configuration

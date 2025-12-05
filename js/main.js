@@ -288,6 +288,10 @@ class PalcoParametrico {
             this.stageBuilder.setParam('stageDeckEnabled', e.target.checked);
         });
 
+        document.getElementById('show-towers').addEventListener('change', (e) => {
+            this.stageBuilder.setTowersVisible(e.target.checked);
+        });
+
         // Stage deck sizing
         this.setupSlider('deck-back-left', 'deck-back-left-val', (value) => {
             this.stageBuilder.setParam('backstageLeftWidth', parseFloat(value));
@@ -431,6 +435,12 @@ class PalcoParametrico {
             document.getElementById('panel-boxtruss-stat').textContent = panelCounts.boxTruss;
             document.getElementById('panel-total-stat').textContent = panelCounts.total;
             document.getElementById('triangles').textContent = this.stats.triangles.toLocaleString();
+
+            const dims = this.stageBuilder.getDimensions();
+            document.getElementById('tower-dims').textContent =
+                `${dims.towers.width.toFixed(2)}m x ${dims.towers.depth.toFixed(2)}m x ${dims.towers.height.toFixed(2)}m`;
+            document.getElementById('stage-dims').textContent =
+                `${dims.stage.width.toFixed(2)}m x ${dims.stage.depth.toFixed(2)}m x ${dims.stage.height.toFixed(2)}m`;
         }
     }
 
