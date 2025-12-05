@@ -287,10 +287,12 @@ export class StageBuilder {
             layoutSpacingY
         } = this.params;
 
+        const facingAngle = 0; // todas as torres alinhadas olhando para +Z
+
         for (let i = 0; i < towerCount; i++) {
             let x = 0;
             let z = 0;
-            let angle = 0;
+            let positionAngle = 0;
 
             if (layoutType === 'line') {
                 const offset = ((towerCount - 1) * layoutSpacingX) / 2;
@@ -306,20 +308,16 @@ export class StageBuilder {
                 x = -offsetX + col * layoutSpacingX;
                 z = -offsetZ + row * layoutSpacingY;
             } else {
-                angle = (i / towerCount) * Math.PI * 2 - Math.PI / 2;
-                x = Math.cos(angle) * layoutRadius;
-                z = Math.sin(angle) * layoutRadius;
-            }
-
-            if (layoutType !== 'circular') {
-                angle = Math.atan2(z, x);
+                positionAngle = (i / towerCount) * Math.PI * 2 - Math.PI / 2;
+                x = Math.cos(positionAngle) * layoutRadius;
+                z = Math.sin(positionAngle) * layoutRadius;
             }
 
             const tower = this.createTower(towerShape, i);
             tower.position.set(x, 0, z);
-            tower.lookAt(0, tower.position.y, 0);
+            tower.rotation.y = facingAngle;
             tower.userData.towerIndex = i;
-            tower.userData.angle = angle;
+            tower.userData.angle = facingAngle;
 
             this.towersGroup.add(tower);
         }
