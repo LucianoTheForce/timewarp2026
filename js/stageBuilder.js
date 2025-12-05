@@ -788,24 +788,26 @@ export class StageBuilder {
             const angle = tower.userData.angle;
 
             for (let face = 0; face < ledBoxTrussFaces; face++) {
+                const isBackFace = this.params.hideRearPanels && this.isRearFace(tower.position, face);
+                if (isBackFace) {
+                    // pano cobrindo toda a face do truss
+                    const clothGeom = new THREE.BoxGeometry(panelSize, totalHeight, 0.02);
+                    const cloth = new THREE.Mesh(clothGeom, this.clothMaterial.clone());
+                    const faceAngle = angle + (face * Math.PI / 2);
+                    cloth.position.copy(tower.position);
+                    cloth.position.y = totalHeight / 2;
+                    cloth.position.x += Math.cos(faceAngle) * panelOffset;
+                    cloth.position.z += Math.sin(faceAngle) * panelOffset;
+                    cloth.rotation.y = -faceAngle + Math.PI / 2;
+                    cloth.userData.type = 'cloth';
+                    this.ledGlassPanels.add(cloth);
+                    continue;
+                }
+
                 for (let panelIndex = 0; panelIndex < ledBoxTrussPanelsPerFace; panelIndex++) {
                     const y = yPositions[panelIndex] ?? totalHeight / 2;
 
                     const panelGeom = new THREE.BoxGeometry(panelSize, panelSize, 0.05);
-
-                    const isBackFace = this.params.hideRearPanels && this.isRearFace(tower.position, face);
-                    if (this.params.hideRearPanels && isBackFace) {
-                        const cloth = new THREE.Mesh(panelGeom, this.clothMaterial.clone());
-                        cloth.position.copy(tower.position);
-                        cloth.position.y = y;
-                        const faceAngle = angle + (face * Math.PI / 2);
-                        cloth.position.x += Math.cos(faceAngle) * panelOffset;
-                        cloth.position.z += Math.sin(faceAngle) * panelOffset;
-                        cloth.rotation.y = -faceAngle + Math.PI / 2;
-                        cloth.userData.type = 'cloth';
-                        this.ledGlassPanels.add(cloth);
-                        continue;
-                    }
 
                     const panelMat = this.ledBoxMaterial.clone();
                     const panel = new THREE.Mesh(panelGeom, panelMat);
@@ -865,12 +867,29 @@ export class StageBuilder {
             const angle = tower.userData.angle;
 
             for (let face = 0; face < ledExternalFaces; face++) {
+                const isRearFace = this.params.hideRearPanels && this.isRearFace(tower.position, face);
+                if (isRearFace) {
+                    const isXFace = face % 2 === 0; // 0:+X,2:-X
+                    const widthFace = isXFace ? towerDepth : towerWidth;
+                    const offset = (isXFace ? towerWidth : towerDepth) / 2 + 0.05;
+                    const clothGeom = new THREE.BoxGeometry(widthFace, totalHeight, 0.02);
+                    const cloth = new THREE.Mesh(clothGeom, this.clothMaterial.clone());
+                    const faceAngle = angle + (face * Math.PI / 2);
+                    cloth.position.copy(tower.position);
+                    cloth.position.y = totalHeight / 2;
+                    cloth.position.x += Math.cos(faceAngle) * offset;
+                    cloth.position.z += Math.sin(faceAngle) * offset;
+                    cloth.rotation.y = -faceAngle + Math.PI / 2;
+                    cloth.userData.type = 'cloth';
+                    this.ledGlassPanels.add(cloth);
+                    continue;
+                }
+
                 for (let panelIndex = 0; panelIndex < ledExternalPanelsPerFace; panelIndex++) {
                     for (let col = 0; col < colCount; col++) {
                         const y = yPositions[panelIndex] ?? totalHeight / 2;
 
                         const panelGeom = new THREE.BoxGeometry(ledExternalWidth, ledExternalHeight, 0.05);
-                        const isBackFace = this.params.hideRearPanels && this.isRearFace(tower.position, face);
                         const faceAngle = angle + (face * Math.PI / 2);
 
                         // Offset normal para fora do andaime externo
