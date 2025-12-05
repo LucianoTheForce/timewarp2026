@@ -162,7 +162,7 @@ export class StageBuilder {
     }
 
     createFloor() {
-        const floorGeom = new THREE.PlaneGeometry(100, 100);
+        const floorGeom = new THREE.PlaneGeometry(200, 200);
         const floorMat = new THREE.MeshStandardMaterial({
             color: 0x555555,
             roughness: 0.8,
@@ -174,9 +174,9 @@ export class StageBuilder {
         this.floor.receiveShadow = true;
         this.scene.add(this.floor);
 
-        // Grid helper
-        this.gridHelper = new THREE.GridHelper(100, 50, 0x888888, 0x666666);
-        this.gridHelper.position.y = 0.01;
+        // Grid helper (1m x 1m)
+        this.gridHelper = new THREE.GridHelper(200, 200, 0x888888, 0x666666);
+        this.gridHelper.position.set(0, 0.01, 0);
         this.scene.add(this.gridHelper);
     }
 
