@@ -531,8 +531,8 @@ export class StageBuilder {
         });
 
         // Área DJ apenas sinalizada (7x3 módulos)
-        const djW = deckModuleSize * 7;
-        const djD = deckModuleSize * 3;
+        const djW = module * 7;
+        const djD = module * 3;
         const djMat = new THREE.MeshStandardMaterial({
             color: 0xf6a6d8,
             roughness: 0.6,
