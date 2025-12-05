@@ -261,6 +261,7 @@ export class StageBuilder {
         this.clearLedGlassPanels();
         this.clearStageDeck();
         this.allLedPanels = [];
+        this.stageDeck.position.set(0, 0, 0);
 
         this.buildTowers();
 
@@ -373,7 +374,8 @@ export class StageBuilder {
         const deckBox = new THREE.Box3().setFromObject(this.stageDeck);
         const deckFront = deckBox.min.z;
 
-        const targetFront = frontZ + 6.0; // 6m da primeira torre
+        // Empurrar o deck 6m para frente (fora da linha da primeira torre)
+        const targetFront = frontZ - 6.0;
         const deltaZ = targetFront - deckFront;
         this.stageDeck.position.z += deltaZ;
     }
