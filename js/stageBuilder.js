@@ -677,7 +677,7 @@ export class StageBuilder {
         addSegment((deckBox.min.x + deckBox.max.x) / 2, deckBox.max.z + t / 2, deckBox.max.x - deckBox.min.x, t);
 
         // Gaps laterais para escadas (centro em Z, nas bordas X)
-        const gapD = stairsDepth + 0.2;
+        const gapD = stairsWidth + 0.2;
         const gapCenterZ = (deckBox.min.z + deckBox.max.z) / 2;
         const gapMinZ = gapCenterZ - gapD / 2;
         const gapMaxZ = gapCenterZ + gapD / 2;
@@ -714,16 +714,18 @@ export class StageBuilder {
         const stepD = stairsDepth / steps;
 
         const zCenter = (deckBox.min.z + deckBox.max.z) / 2;
-        const leftX = deckBox.min.x - stairsWidth / 2 - 0.1;
-        const rightX = deckBox.max.x + stairsWidth / 2 + 0.1;
+        const leftX = deckBox.min.x - stairsDepth / 2 - 0.05;
+        const rightX = deckBox.max.x + stairsDepth / 2 + 0.05;
 
         const makeStairs = (xCenter) => {
             for (let i = 0; i < steps; i++) {
-                const geom = new THREE.BoxGeometry(stairsWidth, stepH, stepD);
+                // Degraus se estendem no eixo X para fora do palco
+                const geom = new THREE.BoxGeometry(stepD, stepH, stairsWidth);
                 const mesh = new THREE.Mesh(geom, this.stairsMaterial.clone());
                 const yCenter = yBase + stepH * (i + 0.5);
-                const zPos = zCenter + (i - steps / 2 + 0.5) * stepD;
-                mesh.position.set(xCenter, yCenter, zPos);
+                const xOffset = (i - steps / 2 + 0.5) * stepD;
+                const xPos = xCenter + (xCenter < 0 ? -xOffset : xOffset);
+                mesh.position.set(xPos, yCenter, zCenter);
                 mesh.userData.type = 'stairs';
                 this.stairsGroup.add(mesh);
             }
