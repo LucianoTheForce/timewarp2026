@@ -989,6 +989,21 @@ export class StageBuilder {
         return { boxTruss, external, total: boxTruss + external };
     }
 
+    getPanelAreas() {
+        const areas = {
+            external: 0,
+            boxTruss: 0,
+            total: 0
+        };
+        const counts = this.getPanelCounts();
+        const externalArea = this.params.ledExternalWidth * this.params.ledExternalHeight;
+        const boxArea = 0.5 * 0.5; // 50cm x 50cm
+        areas.external = counts.external * externalArea;
+        areas.boxTruss = counts.boxTruss * boxArea;
+        areas.total = areas.external + areas.boxTruss;
+        return areas;
+    }
+
     getDimensions() {
         const towerHeight = this.params.towerLevels * this.params.pipeLength;
         const towerWidth = this.params.towerWidth;

@@ -438,6 +438,10 @@ class PalcoParametrico {
             document.getElementById('panel-external-stat').textContent = panelCounts.external;
             document.getElementById('panel-boxtruss-stat').textContent = panelCounts.boxTruss;
             document.getElementById('panel-total-stat').textContent = panelCounts.total;
+            const panelAreas = this.stageBuilder.getPanelAreas();
+            document.getElementById('panel-external-area').textContent = panelAreas.external.toFixed(2);
+            document.getElementById('panel-boxtruss-area').textContent = panelAreas.boxTruss.toFixed(2);
+            document.getElementById('panel-total-area').textContent = panelAreas.total.toFixed(2);
             document.getElementById('triangles').textContent = this.stats.triangles.toLocaleString();
 
             const dims = this.stageBuilder.getDimensions();
@@ -445,6 +449,7 @@ class PalcoParametrico {
                 `${dims.towers.width.toFixed(2)}m x ${dims.towers.depth.toFixed(2)}m x ${dims.towers.height.toFixed(2)}m`;
             document.getElementById('stage-dims').textContent =
                 `${dims.stage.width.toFixed(2)}m x ${dims.stage.depth.toFixed(2)}m x ${dims.stage.height.toFixed(2)}m`;
+            document.getElementById('tower-width-only').textContent = `${dims.towers.width.toFixed(2)} m`;
         }
     }
 
