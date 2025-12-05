@@ -258,15 +258,16 @@ export class StageBuilder {
 
     rebuild() {
         this.clearTowers();
-            this.clearLedGlassPanels();
+        this.clearLedGlassPanels();
         this.clearStageDeck();
         this.allLedPanels = [];
 
+        this.buildTowers();
+
         if (this.params.stageDeckEnabled) {
             this.buildStageDeck();
+            this.alignStageDeckToFront();
         }
-
-        this.buildTowers();
 
         if (this.params.ledBoxTrussEnabled) {
             this.buildLedBoxTrussPanels();
@@ -361,6 +362,20 @@ export class StageBuilder {
                 this.stageDeck.add(line);
             }
         });
+    }
+
+    alignStageDeckToFront() {
+        if (this.towersGroup.children.length === 0 || this.stageDeck.children.length === 0) return;
+
+        const towerBox = new THREE.Box3().setFromObject(this.towersGroup);
+        const frontZ = towerBox.min.z; // menor Z = frente
+
+        const deckBox = new THREE.Box3().setFromObject(this.stageDeck);
+        const deckFront = deckBox.min.z;
+
+        const targetFront = frontZ + 6.0; // 6m da primeira torre
+        const deltaZ = targetFront - deckFront;
+        this.stageDeck.position.z += deltaZ;
     }
 
     buildTowers() {
