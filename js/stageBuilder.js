@@ -23,7 +23,10 @@ export class StageBuilder {
             towerLevels: 4, // Each level is 2m (4 andares = 8m)
             layoutRadius: 10,
             layoutType: 'circular', // 'circular', 'line', 'grid'
-            layoutSpacing: 5,
+            layoutRows: 2,
+            layoutCols: 2,
+            layoutSpacingX: 5,
+            layoutSpacingY: 5,
             towerWidth: 2.0, // 2x2 metros
             towerDepth: 2.0,
 
@@ -195,7 +198,16 @@ export class StageBuilder {
     }
 
     buildTowers() {
-        const { towerCount, layoutRadius, towerShape, layoutType, layoutSpacing } = this.params;
+        const {
+            towerCount,
+            layoutRadius,
+            towerShape,
+            layoutType,
+            layoutRows,
+            layoutCols,
+            layoutSpacingX,
+            layoutSpacingY
+        } = this.params;
 
         for (let i = 0; i < towerCount; i++) {
             let x = 0;
@@ -203,18 +215,18 @@ export class StageBuilder {
             let angle = 0;
 
             if (layoutType === 'line') {
-                const offset = ((towerCount - 1) * layoutSpacing) / 2;
-                x = -offset + i * layoutSpacing;
+                const offset = ((towerCount - 1) * layoutSpacingX) / 2;
+                x = -offset + i * layoutSpacingX;
                 z = 0;
             } else if (layoutType === 'grid') {
-                const cols = Math.ceil(Math.sqrt(towerCount));
-                const rows = Math.ceil(towerCount / cols);
+                const cols = layoutCols || Math.ceil(Math.sqrt(towerCount));
+                const rows = layoutRows || Math.ceil(towerCount / cols);
                 const row = Math.floor(i / cols);
                 const col = i % cols;
-                const offsetX = ((cols - 1) * layoutSpacing) / 2;
-                const offsetZ = ((rows - 1) * layoutSpacing) / 2;
-                x = -offsetX + col * layoutSpacing;
-                z = -offsetZ + row * layoutSpacing;
+                const offsetX = ((cols - 1) * layoutSpacingX) / 2;
+                const offsetZ = ((rows - 1) * layoutSpacingY) / 2;
+                x = -offsetX + col * layoutSpacingX;
+                z = -offsetZ + row * layoutSpacingY;
             } else {
                 angle = (i / towerCount) * Math.PI * 2 - Math.PI / 2;
                 x = Math.cos(angle) * layoutRadius;
@@ -641,7 +653,10 @@ export class StageBuilder {
                 levels: this.params.towerLevels,
                 layoutType: this.params.layoutType,
                 layoutRadius: this.params.layoutRadius,
-                layoutSpacing: this.params.layoutSpacing,
+                layoutRows: this.params.layoutRows,
+                layoutCols: this.params.layoutCols,
+                layoutSpacingX: this.params.layoutSpacingX,
+                layoutSpacingY: this.params.layoutSpacingY,
                 width: this.params.towerWidth,
                 depth: this.params.towerDepth
             },

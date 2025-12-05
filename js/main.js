@@ -113,8 +113,20 @@ class PalcoParametrico {
             this.stageBuilder.setParam('layoutType', e.target.value);
         });
 
-        this.setupSlider('layout-spacing', 'layout-spacing-val', (value) => {
-            this.stageBuilder.setParam('layoutSpacing', parseFloat(value));
+        this.setupSlider('layout-rows', 'layout-rows-val', (value) => {
+            this.stageBuilder.setParam('layoutRows', parseInt(value));
+        });
+
+        this.setupSlider('layout-cols', 'layout-cols-val', (value) => {
+            this.stageBuilder.setParam('layoutCols', parseInt(value));
+        });
+
+        this.setupSlider('layout-spacing-x', 'layout-spacing-x-val', (value) => {
+            this.stageBuilder.setParam('layoutSpacingX', parseFloat(value));
+        });
+
+        this.setupSlider('layout-spacing-y', 'layout-spacing-y-val', (value) => {
+            this.stageBuilder.setParam('layoutSpacingY', parseFloat(value));
         });
 
         this.setupSlider('tower-width', 'tower-width-val', (value) => {
