@@ -18,15 +18,15 @@ export class StageBuilder {
         // Parameters - default values
         this.params = {
             // Tower params
-            towerCount: 4,
+            towerCount: 8,
             towerShape: 'square', // 'square', 'rectangular', 'triangular'
             towerLevels: 4, // Each level is 2m (4 andares = 8m)
-            layoutRadius: 10,
-            layoutType: 'circular', // 'circular', 'line', 'grid'
-            layoutRows: 2,
+            layoutRadius: 8,
+            layoutType: 'grid', // 'circular', 'line', 'grid'
+            layoutRows: 5,
             layoutCols: 2,
-            layoutSpacingX: 5,
-            layoutSpacingY: 5,
+            layoutSpacingX: 20,
+            layoutSpacingY: 8,
             towerWidth: 2.0, // 2x2 metros
             towerDepth: 2.0,
 
@@ -49,9 +49,9 @@ export class StageBuilder {
             ledExternalFaces: 4, // 4 faces
 
             // LED effects
-            ledEffect: 'solid',
+            ledEffect: 'wave',
             ledColor: 0xff0066,
-            ledIntensity: 1.0,
+            ledIntensity: 1.4,
             animationSpeed: 1.0
         };
 
