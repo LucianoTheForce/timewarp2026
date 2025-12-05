@@ -41,7 +41,7 @@ class PalcoParametrico {
             0.1,
             500
         );
-        this.camera.position.set(20, 15, 25);
+        this.camera.position.set(-1.4717909951771859e-15, 40, 0.10000000000114141);
 
         // Renderer
         this.renderer = new THREE.WebGLRenderer({
@@ -64,7 +64,7 @@ class PalcoParametrico {
         this.controls.maxPolarAngle = Math.PI / 2 - 0.05;
         this.controls.minDistance = 5;
         this.controls.maxDistance = 100;
-        this.controls.target.set(0.5936769866357681, 2.70501455428096, 1.3122640307762559);
+        this.controls.target.set(0, 0, 0);
 
         // Initialize subsystems
         this.stageBuilder = new StageBuilder(this.scene);
@@ -252,8 +252,8 @@ class PalcoParametrico {
 
         // Camera controls
         document.getElementById('reset-camera').addEventListener('click', () => {
-        this.camera.position.set(-2.0873446809609226, 10.018406433603161, 27.497649405780518);
-            this.controls.target.set(0, 5, 0);
+            this.camera.position.set(-1.4717909951771859e-15, 40, 0.10000000000114141);
+            this.controls.target.set(0, 0, 0);
             this.controls.update();
         });
 

@@ -38,15 +38,20 @@ export class StageBuilder {
 
             // LED no Box Truss Central (50x50cm)
             ledBoxTrussEnabled: true,
-            ledBoxTrussPanelsPerFace: 4, // 4 painéis empilhados (preenche os 4 andares)
+            ledBoxTrussPanelsPerFace: 4, // 4 paineis empilhados (preenche os 4 andares)
             ledBoxTrussFaces: 4, // 4 faces
+            ledBoxTrussColor: 0xff0066, // 16711782
+            ledBoxTrussIntensity: 6.0,
 
             // LED nos Andaimes Externos (1000x500mm)
             ledExternalEnabled: true,
             ledExternalWidth: 1.0, // 1000mm
             ledExternalHeight: 0.5, // 500mm
-            ledExternalPanelsPerFace: 4, // 4 painéis empilhados
+            ledExternalPanelsPerFace: 4, // 4 paineis empilhados
             ledExternalFaces: 4, // 4 faces
+            ledExternalPanelsPerRow: 2, // 1 ou 2 por linha/face
+            ledExternalColor: 0xff0000, // 16711680
+            ledExternalIntensity: 6.0,
 
             // LED effects
             ledEffect: 'wave',
