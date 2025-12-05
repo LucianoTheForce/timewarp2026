@@ -13,6 +13,10 @@ export class StageBuilder {
         this.ledGlassPanels.name = 'ledGlassPanels';
         this.scene.add(this.ledGlassPanels);
 
+        this.stageDeck = new THREE.Group();
+        this.stageDeck.name = 'stageDeck';
+        this.scene.add(this.stageDeck);
+
         this.floor = null;
 
         // Parameters - default values
@@ -29,6 +33,12 @@ export class StageBuilder {
             layoutSpacingY: 8,
             towerWidth: 2.0, // 2x2 metros
             towerDepth: 2.0,
+
+            // Stage deck
+            stageDeckEnabled: true,
+            deckModuleSize: 1.25,
+            deckHeight: 1.33,
+            deckThickness: 0.2,
 
             // Pipe params (2m standard)
             pipeLength: 2.0, // Fixed 2m pipes
@@ -248,8 +258,13 @@ export class StageBuilder {
 
     rebuild() {
         this.clearTowers();
-        this.clearLedGlassPanels();
+            this.clearLedGlassPanels();
+        this.clearStageDeck();
         this.allLedPanels = [];
+
+        if (this.params.stageDeckEnabled) {
+            this.buildStageDeck();
+        }
 
         this.buildTowers();
 
@@ -278,6 +293,74 @@ export class StageBuilder {
             if (child.material) child.material.dispose();
             this.ledGlassPanels.remove(child);
         }
+    }
+
+    clearStageDeck() {
+        while (this.stageDeck.children.length > 0) {
+            const child = this.stageDeck.children[0];
+            if (child.geometry) child.geometry.dispose();
+            if (child.material) child.material.dispose();
+            this.stageDeck.remove(child);
+        }
+    }
+
+    buildStageDeck() {
+        const module = this.params.deckModuleSize;
+        const height = this.params.deckHeight;
+        const thickness = this.params.deckThickness;
+        const y = height - thickness / 2;
+
+        const blocks = [
+            // Green backstage blocks
+            { w: 8.75, d: 7.5, x: -11.25, z: -3.75, color: 0x7fcf90 },
+            { w: 13.75, d: 7.5, x: 0, z: -3.75, color: 0x7fcf90 },
+            { w: 8.75, d: 7.5, x: 11.25, z: -3.75, color: 0x7fcf90 },
+            // Pink DJ area
+            { w: 8.0, d: 3.75, x: 0, z: -2.0, color: 0xf6a6d8 },
+            // Gray front stage
+            { w: 8.0, d: 2.5, x: 0, z: -(7.5 + 1.25), color: 0x8a8a8a }
+        ];
+
+        const deckMat = (hex) =>
+            new THREE.MeshStandardMaterial({
+                color: hex,
+                roughness: 0.6,
+                metalness: 0.05
+            });
+
+        blocks.forEach((b) => {
+            const geom = new THREE.BoxGeometry(b.w, thickness, b.d);
+            const mesh = new THREE.Mesh(geom, deckMat(b.color));
+            mesh.position.set(b.x, y, b.z);
+            mesh.receiveShadow = true;
+            mesh.castShadow = true;
+            mesh.userData.type = 'deck';
+            this.stageDeck.add(mesh);
+        });
+
+        // Grid lines to suggest modular 1.25m layout
+        const gridMat = new THREE.LineBasicMaterial({ color: 0x222222, transparent: true, opacity: 0.5 });
+        blocks.forEach((b) => {
+            const cols = Math.round(b.w / module);
+            const rows = Math.round(b.d / module);
+            const x0 = b.x - b.w / 2;
+            const z0 = b.z - b.d / 2;
+
+            for (let i = 0; i <= cols; i++) {
+                const x = x0 + i * module;
+                const pts = [new THREE.Vector3(x, y + thickness / 2 + 0.001, z0), new THREE.Vector3(x, y + thickness / 2 + 0.001, z0 + b.d)];
+                const geo = new THREE.BufferGeometry().setFromPoints(pts);
+                const line = new THREE.Line(geo, gridMat);
+                this.stageDeck.add(line);
+            }
+            for (let j = 0; j <= rows; j++) {
+                const z = z0 + j * module;
+                const pts = [new THREE.Vector3(x0, y + thickness / 2 + 0.001, z), new THREE.Vector3(x0 + b.w, y + thickness / 2 + 0.001, z)];
+                const geo = new THREE.BufferGeometry().setFromPoints(pts);
+                const line = new THREE.Line(geo, gridMat);
+                this.stageDeck.add(line);
+            }
+        });
     }
 
     buildTowers() {
@@ -785,6 +868,12 @@ export class StageBuilder {
                 height: this.params.ledGlassHeight,
                 panelsPerFace: this.params.panelsPerFace,
                 facesWithPanel: this.params.facesWithPanel
+            },
+            stageDeck: {
+                enabled: this.params.stageDeckEnabled,
+                moduleSize: this.params.deckModuleSize,
+                height: this.params.deckHeight,
+                thickness: this.params.deckThickness
             },
             centralPanel: {
                 type: this.params.centralPanelType,

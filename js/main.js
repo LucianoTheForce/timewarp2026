@@ -284,6 +284,10 @@ class PalcoParametrico {
             this.stageBuilder.setFloorVisible(e.target.checked);
         });
 
+        document.getElementById('show-stage-deck').addEventListener('change', (e) => {
+            this.stageBuilder.setParam('stageDeckEnabled', e.target.checked);
+        });
+
         document.getElementById('show-glb-model').addEventListener('change', (e) => {
             if (e.target.checked && !this.glbModel) {
                 this.loadGLB();
