@@ -292,6 +292,10 @@ class PalcoParametrico {
             this.stageBuilder.setTowersVisible(e.target.checked);
         });
 
+        document.getElementById('lasers-enabled').addEventListener('change', (e) => {
+            this.stageBuilder.setParam('lasersEnabled', e.target.checked);
+        });
+
         document.getElementById('show-dimensions').addEventListener('change', (e) => {
             this.stageBuilder.setParam('showDimensions', e.target.checked);
         });

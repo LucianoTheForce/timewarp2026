@@ -37,6 +37,10 @@ export class StageBuilder {
         this.risersGroup.name = 'djRisers';
         this.scene.add(this.risersGroup);
 
+        this.lasersGroup = new THREE.Group();
+        this.lasersGroup.name = 'lasers';
+        this.scene.add(this.lasersGroup);
+
         this.floor = null;
 
         // Parameters - default values
@@ -72,6 +76,7 @@ export class StageBuilder {
             railingsEnabled: true,
             stairsEnabled: true,
             risersEnabled: true,
+            lasersEnabled: true,
             railingHeight: 1.1,
             railingThickness: 0.04,
             stairsWidth: 2.0,
@@ -80,6 +85,8 @@ export class StageBuilder {
             riserWidth: 2.0,
             riserDepth: 2.0,
             riserHeight: 1.0,
+            laserHeight: 20,
+            laserColor: 0x00ff00,
 
             // Pipe params (2m standard)
             pipeLength: 2.0, // Fixed 2m pipes
@@ -168,6 +175,14 @@ export class StageBuilder {
             metalness: 0.3,
             roughness: 0.4,
             side: THREE.FrontSide
+        });
+
+        this.laserMaterial = new THREE.MeshBasicMaterial({
+            color: this.params.laserColor,
+            transparent: true,
+            opacity: 0.65,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false
         });
 
         this.centralPanelMaterial = new THREE.MeshStandardMaterial({
@@ -259,6 +274,7 @@ export class StageBuilder {
     setTowersVisible(visible) {
         this.towersGroup.visible = visible;
         this.ledGlassPanels.visible = visible;
+        this.lasersGroup.visible = visible;
     }
 
     updateParams(newParams) {
@@ -288,6 +304,12 @@ export class StageBuilder {
             this.updateLedIntensityForType('ledBoxTruss', value);
         } else if (key === 'ledExternalIntensity') {
             this.updateLedIntensityForType('ledExternal', value);
+        } else if (key === 'laserColor') {
+            this.params.laserColor = value;
+            if (this.laserMaterial) this.laserMaterial.color = new THREE.Color(value);
+            this.lasersGroup.children.forEach((beam) => {
+                if (beam.material) beam.material.color = new THREE.Color(value);
+            });
         } else if (key === 'ledEffect' && value === 'video') {
             // Switch to video mode
         } else if (key === 'showDimensions') {
@@ -348,6 +370,7 @@ export class StageBuilder {
         this.clearRailings();
         this.clearStairs();
         this.clearRisers();
+        this.clearLasers();
         this.allLedPanels = [];
         this.stageDeck.position.set(0, 0, 0);
 
@@ -372,6 +395,10 @@ export class StageBuilder {
 
         if (this.params.risersEnabled) {
             this.buildRisers();
+        }
+
+        if (this.params.lasersEnabled) {
+            this.buildLasers();
         }
 
         if (this.params.showDimensions) {
@@ -448,6 +475,15 @@ export class StageBuilder {
             if (child.geometry) child.geometry.dispose();
             if (child.material) child.material.dispose();
             this.stairsGroup.remove(child);
+        }
+    }
+
+    clearLasers() {
+        while (this.lasersGroup.children.length > 0) {
+            const child = this.lasersGroup.children[0];
+            if (child.geometry) child.geometry.dispose();
+            if (child.material && !child.material.isShaderMaterial) child.material.dispose();
+            this.lasersGroup.remove(child);
         }
     }
 
@@ -760,6 +796,23 @@ export class StageBuilder {
             mesh.userData.type = 'riser';
             this.risersGroup.add(mesh);
         }
+    }
+
+    buildLasers() {
+        const height = this.params.laserHeight || this.params.towerLevels * this.params.pipeLength;
+        const beamRadius = 0.05;
+
+        this.towersGroup.children.forEach((tower) => {
+            const box = new THREE.Box3().setFromObject(tower);
+            if (!isFinite(box.max.y)) return;
+            const center = box.getCenter(new THREE.Vector3());
+            const geometry = new THREE.CylinderGeometry(beamRadius, beamRadius, height, 8, 1, true);
+            const beam = new THREE.Mesh(geometry, this.laserMaterial.clone());
+            beam.position.set(center.x, box.max.y + height / 2, center.z);
+            beam.userData.type = 'laser';
+            beam.renderOrder = 2;
+            this.lasersGroup.add(beam);
+        });
     }
     isRearFace(towerPosition, faceIndex) {
         // Face indices: 0=+X, 1=+Z, 2=-X, 3=-Z (com facingAngle=0)
@@ -1362,6 +1415,11 @@ export class StageBuilder {
                 djDepth: this.params.djDepth,
                 frontWidth: this.params.frontWidth,
                 frontDepth: this.params.frontDepth
+            },
+            lasers: {
+                enabled: this.params.lasersEnabled,
+                height: this.params.laserHeight,
+                color: this.params.laserColor
             },
             centralPanel: {
                 type: this.params.centralPanelType,
