@@ -38,7 +38,7 @@ export class StageBuilder {
             layoutRows: 5,
             layoutCols: 2,
             layoutSpacingX: 20,
-            layoutSpacingY: 8,
+            layoutSpacingY: 32,
             towerWidth: 2.0, // 2x2 metros
             towerDepth: 2.0,
 
@@ -55,7 +55,7 @@ export class StageBuilder {
             djDepth: 3.75,
             frontWidth: 8.0,
             frontDepth: 2.5,
-            showDimensions: true,
+            showDimensions: false,
             backScaffoldEnabled: true,
 
             // Pipe params (2m standard)
