@@ -17,6 +17,10 @@ export class StageBuilder {
         this.stageDeck.name = 'stageDeck';
         this.scene.add(this.stageDeck);
 
+        this.dimensionGroup = new THREE.Group();
+        this.dimensionGroup.name = 'dimensions';
+        this.scene.add(this.dimensionGroup);
+
         this.floor = null;
 
         // Parameters - default values
@@ -273,6 +277,7 @@ export class StageBuilder {
         this.clearTowers();
         this.clearLedGlassPanels();
         this.clearStageDeck();
+        this.clearDimensions();
         this.allLedPanels = [];
         this.stageDeck.position.set(0, 0, 0);
 
@@ -281,6 +286,7 @@ export class StageBuilder {
         if (this.params.stageDeckEnabled) {
             this.buildStageDeck();
             this.alignStageDeckToFront();
+            this.buildDimensionLines();
         }
 
         if (this.params.ledBoxTrussEnabled) {
@@ -316,6 +322,16 @@ export class StageBuilder {
             if (child.geometry) child.geometry.dispose();
             if (child.material) child.material.dispose();
             this.stageDeck.remove(child);
+        }
+    }
+
+    clearDimensions() {
+        while (this.dimensionGroup.children.length > 0) {
+            const child = this.dimensionGroup.children[0];
+            if (child.geometry) child.geometry.dispose();
+            if (child.material && child.material.map) child.material.map.dispose();
+            if (child.material) child.material.dispose();
+            this.dimensionGroup.remove(child);
         }
     }
 
@@ -410,6 +426,56 @@ export class StageBuilder {
         const targetBack = frontZ - 6.0;
         const deltaZ = targetBack - deckBack;
         this.stageDeck.position.z += deltaZ;
+    }
+
+    buildDimensionLines() {
+        const deckBox = new THREE.Box3().setFromObject(this.stageDeck);
+        if (!isFinite(deckBox.min.x) || !isFinite(deckBox.max.x)) return;
+
+        const frontZ = deckBox.min.z;
+        const width = deckBox.max.x - deckBox.min.x;
+        const y = this.params.deckHeight + 0.1;
+
+        const start = new THREE.Vector3(deckBox.min.x, y, frontZ);
+        const end = new THREE.Vector3(deckBox.max.x, y, frontZ);
+        this.addDimension(start, end, `${width.toFixed(2)} m`);
+    }
+
+    addDimension(start, end, label) {
+        const mat = new THREE.LineBasicMaterial({ color: 0xffff00, linewidth: 2 });
+        const points = [start, end];
+        const geo = new THREE.BufferGeometry().setFromPoints(points);
+        const line = new THREE.Line(geo, mat);
+        this.dimensionGroup.add(line);
+
+        const mid = new THREE.Vector3().addVectors(start, end).multiplyScalar(0.5);
+        const sprite = this.makeTextSprite(label);
+        sprite.position.copy(mid);
+        sprite.position.y += 0.2;
+        this.dimensionGroup.add(sprite);
+    }
+
+    makeTextSprite(message) {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        const fontSize = 48;
+        ctx.font = `${fontSize}px Arial`;
+        const padding = 20;
+        const metrics = ctx.measureText(message);
+        canvas.width = metrics.width + padding;
+        canvas.height = fontSize + padding;
+        ctx.font = `${fontSize}px Arial`;
+        ctx.fillStyle = 'rgba(0,0,0,0.6)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#ffff00';
+        ctx.fillText(message, padding / 2, fontSize);
+
+        const texture = new THREE.CanvasTexture(canvas);
+        const spriteMat = new THREE.SpriteMaterial({ map: texture, transparent: true });
+        const sprite = new THREE.Sprite(spriteMat);
+        const scale = 0.5;
+        sprite.scale.set(canvas.width / fontSize * scale, canvas.height / fontSize * scale, 1);
+        return sprite;
     }
 
     buildTowers() {
