@@ -903,15 +903,6 @@ export class StageBuilder {
                         const posX = baseX + tangentX * colOffset;
                         const posZ = baseZ + tangentZ * colOffset;
 
-                        if (isBackFace) {
-                            const cloth = new THREE.Mesh(panelGeom, this.clothMaterial.clone());
-                            cloth.position.set(posX, y, posZ);
-                            cloth.rotation.y = -faceAngle + Math.PI / 2;
-                            cloth.userData.type = 'cloth';
-                            this.ledGlassPanels.add(cloth);
-                            continue;
-                        }
-
                         const panelMat = this.ledExternalMaterial.clone();
                         const panel = new THREE.Mesh(panelGeom, panelMat);
 
