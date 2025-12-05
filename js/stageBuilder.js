@@ -51,6 +51,7 @@ export class StageBuilder {
             djDepth: 3.75,
             frontWidth: 8.0,
             frontDepth: 2.5,
+            showDimensions: true,
 
             // Pipe params (2m standard)
             pipeLength: 2.0, // Fixed 2m pipes
@@ -231,6 +232,13 @@ export class StageBuilder {
             this.updateLedIntensityForType('ledExternal', value);
         } else if (key === 'ledEffect' && value === 'video') {
             // Switch to video mode
+        } else if (key === 'showDimensions') {
+            if (!value) {
+                this.clearDimensions();
+            } else {
+                this.clearDimensions();
+                this.buildDimensionLines();
+            }
         } else {
             // Rebuild for structural changes
             this.rebuild();
@@ -286,6 +294,9 @@ export class StageBuilder {
         if (this.params.stageDeckEnabled) {
             this.buildStageDeck();
             this.alignStageDeckToFront();
+        }
+
+        if (this.params.showDimensions) {
             this.buildDimensionLines();
         }
 
@@ -429,16 +440,39 @@ export class StageBuilder {
     }
 
     buildDimensionLines() {
+        this.clearDimensions();
+
+        // Stage width and depth
         const deckBox = new THREE.Box3().setFromObject(this.stageDeck);
-        if (!isFinite(deckBox.min.x) || !isFinite(deckBox.max.x)) return;
+        if (isFinite(deckBox.min.x) && isFinite(deckBox.max.x)) {
+            const y = this.params.deckHeight + 0.1;
+            const frontZ = deckBox.min.z;
+            const backZ = deckBox.max.z;
+            const width = deckBox.max.x - deckBox.min.x;
+            const depth = deckBox.max.z - deckBox.min.z;
 
-        const frontZ = deckBox.min.z;
-        const width = deckBox.max.x - deckBox.min.x;
-        const y = this.params.deckHeight + 0.1;
+            const startW = new THREE.Vector3(deckBox.min.x, y, frontZ);
+            const endW = new THREE.Vector3(deckBox.max.x, y, frontZ);
+            this.addDimension(startW, endW, `${width.toFixed(2)} m`);
 
-        const start = new THREE.Vector3(deckBox.min.x, y, frontZ);
-        const end = new THREE.Vector3(deckBox.max.x, y, frontZ);
-        this.addDimension(start, end, `${width.toFixed(2)} m`);
+            const startD = new THREE.Vector3(deckBox.max.x + 0.2, y, frontZ);
+            const endD = new THREE.Vector3(deckBox.max.x + 0.2, y, backZ);
+            this.addDimension(startD, endD, `${depth.toFixed(2)} m`);
+        }
+
+        // Tower height (use first tower)
+        if (this.towersGroup.children.length > 0) {
+            const tower = this.towersGroup.children[0];
+            const tBox = new THREE.Box3().setFromObject(tower);
+            if (isFinite(tBox.min.y) && isFinite(tBox.max.y)) {
+                const x = tBox.max.x + 0.3;
+                const z = tBox.max.z + 0.3;
+                const h = tBox.max.y - tBox.min.y;
+                const startH = new THREE.Vector3(x, tBox.min.y, z);
+                const endH = new THREE.Vector3(x, tBox.max.y, z);
+                this.addDimension(startH, endH, `${h.toFixed(2)} m`);
+            }
+        }
     }
 
     addDimension(start, end, label) {

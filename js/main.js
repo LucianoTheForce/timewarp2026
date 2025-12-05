@@ -292,6 +292,10 @@ class PalcoParametrico {
             this.stageBuilder.setTowersVisible(e.target.checked);
         });
 
+        document.getElementById('show-dimensions').addEventListener('change', (e) => {
+            this.stageBuilder.setParam('showDimensions', e.target.checked);
+        });
+
         // Stage deck sizing
         this.setupSlider('deck-back-left', 'deck-back-left-val', (value) => {
             this.stageBuilder.setParam('backstageLeftWidth', parseFloat(value));
