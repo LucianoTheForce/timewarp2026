@@ -85,6 +85,12 @@ export class StageBuilder {
             riserWidth: 2.0,
             riserDepth: 2.0,
             riserHeight: 1.0,
+            stageFrontBandsEnabled: true,
+            stageRearBandsEnabled: true,
+            stageBandCount: 3,
+            stageBandHeight: 0.6,
+            stageBandGap: 0.15,
+            stageBandDepth: 0.12,
             laserHeight: 20,
             laserColor: 0x00ff00,
 
@@ -157,8 +163,8 @@ export class StageBuilder {
             emissiveMap: ledTexture,
             emissive: this.params.ledBoxTrussColor,
             emissiveIntensity: this.params.ledBoxTrussIntensity,
-            transparent: true,
-            opacity: 0.65,
+            transparent: false,
+            opacity: 1.0,
             metalness: 0.3,
             roughness: 0.4,
             side: THREE.FrontSide
@@ -174,6 +180,32 @@ export class StageBuilder {
             opacity: 0.65,
             metalness: 0.3,
             roughness: 0.4,
+            side: THREE.FrontSide
+        });
+
+        this.stageFrontLedMaterial = new THREE.MeshStandardMaterial({
+            color: 0x111111,
+            map: ledTexture,
+            emissiveMap: ledTexture,
+            emissive: this.params.ledExternalColor,
+            emissiveIntensity: this.params.ledExternalIntensity,
+            transparent: true,
+            opacity: 0.45,
+            metalness: 0.25,
+            roughness: 0.35,
+            side: THREE.FrontSide
+        });
+
+        this.stageRearLedMaterial = new THREE.MeshStandardMaterial({
+            color: 0x111111,
+            map: ledTexture,
+            emissiveMap: ledTexture,
+            emissive: this.params.ledExternalColor,
+            emissiveIntensity: this.params.ledExternalIntensity,
+            transparent: false,
+            opacity: 1.0,
+            metalness: 0.25,
+            roughness: 0.35,
             side: THREE.FrontSide
         });
 
@@ -334,6 +366,13 @@ export class StageBuilder {
         }
         if (type === 'ledExternal' || type === 'all') {
             if (this.ledExternalMaterial) this.ledExternalMaterial.emissive.copy(colorObj);
+            if (this.stageFrontLedMaterial) this.stageFrontLedMaterial.emissive.copy(colorObj);
+            if (this.stageRearLedMaterial) this.stageRearLedMaterial.emissive.copy(colorObj);
+            this.stageDeck.traverse((child) => {
+                if (child.userData && child.userData.type === 'stageBand' && child.material && child.material.emissive) {
+                    child.material.emissive.copy(colorObj);
+                }
+            });
         }
 
         this.allLedPanels.forEach(panel => {
@@ -351,6 +390,13 @@ export class StageBuilder {
         }
         if (type === 'ledExternal' || type === 'all') {
             if (this.ledExternalMaterial) this.ledExternalMaterial.emissiveIntensity = intensity;
+            if (this.stageFrontLedMaterial) this.stageFrontLedMaterial.emissiveIntensity = intensity;
+            if (this.stageRearLedMaterial) this.stageRearLedMaterial.emissiveIntensity = intensity;
+            this.stageDeck.traverse((child) => {
+                if (child.userData && child.userData.type === 'stageBand' && child.material) {
+                    child.material.emissiveIntensity = intensity;
+                }
+            });
         }
 
         this.allLedPanels.forEach(panel => {
@@ -581,6 +627,34 @@ export class StageBuilder {
         djMesh.position.set(0, height + 0.01, zDj);
         djMesh.userData.type = 'djArea';
         this.stageDeck.add(djMesh);
+
+        // Faixas de LED frontais (translúcidas) e traseiras (normais)
+        if (this.params.stageFrontBandsEnabled || this.params.stageRearBandsEnabled) {
+            const deckBox = new THREE.Box3().setFromObject(this.stageDeck);
+            const bandCount = this.params.stageBandCount || 3;
+            const bandH = this.params.stageBandHeight || 0.6;
+            const bandGap = this.params.stageBandGap ?? 0.15;
+            const bandDepth = this.params.stageBandDepth || 0.12;
+            const width = deckBox.max.x - deckBox.min.x;
+            const centerX = (deckBox.min.x + deckBox.max.x) / 2;
+            const baseY = height + bandH / 2;
+
+            const addBands = (isFront) => {
+                const matBase = isFront ? this.stageFrontLedMaterial : this.stageRearLedMaterial;
+                const zPos = isFront ? deckBox.min.z - bandDepth / 2 : deckBox.max.z + bandDepth / 2;
+                for (let i = 0; i < bandCount; i++) {
+                    const geom = new THREE.BoxGeometry(width, bandH, bandDepth);
+                    const mesh = new THREE.Mesh(geom, matBase.clone());
+                    const yCenter = baseY + i * (bandH + bandGap);
+                    mesh.position.set(centerX, yCenter, zPos);
+                    mesh.userData.type = 'stageBand';
+                    this.stageDeck.add(mesh);
+                }
+            };
+
+            if (this.params.stageFrontBandsEnabled) addBands(true);
+            if (this.params.stageRearBandsEnabled) addBands(false);
+        }
     }
 
     alignStageDeckToFront() {
@@ -803,16 +877,59 @@ export class StageBuilder {
         const height = this.params.laserHeight || this.params.towerLevels * this.params.pipeLength;
         const beamRadius = 0.05;
 
-        this.towersGroup.children.forEach((tower) => {
+        const sphereRadius = 0.08;
+
+        const makeRand = (seed) => {
+            let s = seed;
+            return () => {
+                s = (s * 9301 + 49297) % 233280;
+                return s / 233280;
+            };
+        };
+
+        this.towersGroup.children.forEach((tower, idx) => {
+            const towerIndex = tower.userData.towerIndex ?? idx;
+            // Uma torre sim, outra não
+            if (towerIndex % 2 !== 0) return;
+
             const box = new THREE.Box3().setFromObject(tower);
             if (!isFinite(box.max.y)) return;
             const center = box.getCenter(new THREE.Vector3());
-            const geometry = new THREE.CylinderGeometry(beamRadius, beamRadius, height, 8, 1, true);
-            const beam = new THREE.Mesh(geometry, this.laserMaterial.clone());
-            beam.position.set(center.x, box.max.y + height / 2, center.z);
-            beam.userData.type = 'laser';
-            beam.renderOrder = 2;
-            this.lasersGroup.add(beam);
+
+            const rand = makeRand(towerIndex + 1);
+            const colorMat = this.laserMaterial.clone();
+
+            // Linha vertical
+            const vertGeom = new THREE.CylinderGeometry(beamRadius, beamRadius, height, 8, 1, true);
+            const vert = new THREE.Mesh(vertGeom, colorMat.clone());
+            vert.position.set(center.x, box.max.y + height / 2, center.z);
+            vert.userData.type = 'laser';
+            vert.renderOrder = 2;
+            this.lasersGroup.add(vert);
+
+            // Linha horizontal (eixo X) em altura média
+            const horizLen = Math.max(6, this.params.layoutSpacingX || 8);
+            const horizGeom = new THREE.CylinderGeometry(beamRadius, beamRadius, horizLen, 8, 1, true);
+            const horiz = new THREE.Mesh(horizGeom, colorMat.clone());
+            horiz.rotation.z = Math.PI / 2;
+            horiz.position.set(center.x, box.max.y + height * 0.3, center.z);
+            horiz.userData.type = 'laser';
+            horiz.renderOrder = 2;
+            this.lasersGroup.add(horiz);
+
+            // Pontos generativos ao longo do volume (esferas pequenas)
+            const pointCount = 8;
+            for (let i = 0; i < pointCount; i++) {
+                const px = center.x + (rand() - 0.5) * 1.8;
+                const pz = center.z + (rand() - 0.5) * 1.8;
+                const py = this.params.deckHeight + rand() * height;
+                const sphereGeom = new THREE.SphereGeometry(sphereRadius, 10, 10);
+                const sphere = new THREE.Mesh(sphereGeom, colorMat.clone());
+                sphere.position.set(px, py, pz);
+                sphere.userData.type = 'laser';
+                sphere.renderOrder = 2;
+                this.lasersGroup.add(sphere);
+            }
         });
     }
     isRearFace(towerPosition, faceIndex) {
@@ -1415,7 +1532,13 @@ export class StageBuilder {
                 djWidth: this.params.djWidth,
                 djDepth: this.params.djDepth,
                 frontWidth: this.params.frontWidth,
-                frontDepth: this.params.frontDepth
+                frontDepth: this.params.frontDepth,
+                frontBandsEnabled: this.params.stageFrontBandsEnabled,
+                rearBandsEnabled: this.params.stageRearBandsEnabled,
+                bandCount: this.params.stageBandCount,
+                bandHeight: this.params.stageBandHeight,
+                bandGap: this.params.stageBandGap,
+                bandDepth: this.params.stageBandDepth
             },
             lasers: {
                 enabled: this.params.lasersEnabled,
