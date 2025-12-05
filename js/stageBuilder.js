@@ -843,7 +843,8 @@ export class StageBuilder {
             ledExternalPanelsPerRow,
             towerLevels,
             pipeLength,
-            towerWidth
+            towerWidth,
+            towerDepth
         } = this.params;
 
         const panelOffset = towerWidth / 2 + 0.05; // Fora do andaime externo
