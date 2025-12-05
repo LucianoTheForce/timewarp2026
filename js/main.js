@@ -372,7 +372,7 @@ class PalcoParametrico {
         const loader = new GLTFLoader();
 
         loader.load(
-            './assets/1.glb',
+            './assets/GANGANBAIAU.glb',
             (gltf) => {
                 this.glbModel = gltf.scene;
 
@@ -412,6 +412,10 @@ class PalcoParametrico {
             camera: {
                 position: this.camera.position.toArray(),
                 target: this.controls.target.toArray()
+            },
+            glbModel: {
+                visible: !!(this.glbModel && this.glbModel.visible),
+                path: './assets/GANGANBAIAU.glb'
             }
         };
 
