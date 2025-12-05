@@ -548,7 +548,8 @@ export class StageBuilder {
         const count = Math.max(2, Math.round(width / this.params.towerWidth));
         const spacing = count > 1 ? width / (count - 1) : 0;
         const startX = deckBox.min.x;
-        const z = deckBox.max.z + this.params.towerDepth / 2 + 0.05; // encostado atrás
+        // Encostar na face traseira do palco (lado oposto ao público)
+        const z = deckBox.min.z - (this.params.towerDepth / 2 + 0.05);
 
         for (let i = 0; i < count; i++) {
             const tower = this.createTower('square', i);
