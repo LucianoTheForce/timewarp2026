@@ -73,21 +73,26 @@ export class StageBuilder {
     }
 
     initMaterials() {
+        const ledTexture = this.createLedTexture();
+
         this.pipeMaterial = new THREE.MeshStandardMaterial({
             color: 0xaaaaaa,
             metalness: 0.9,
             roughness: 0.2
         });
 
-        // Painel LED normal (opaco, não translúcido)
+        // Painel LED com textura e emissao apenas na face frontal (verso sem luz)
         this.ledGlassMaterial = new THREE.MeshStandardMaterial({
             color: 0x111111,
+            map: ledTexture,
+            emissiveMap: ledTexture,
             emissive: this.params.ledColor,
             emissiveIntensity: this.params.ledIntensity,
-            transparent: false,
+            transparent: true,
+            opacity: 0.65,
             metalness: 0.3,
             roughness: 0.4,
-            side: THREE.DoubleSide
+            side: THREE.FrontSide
         });
 
         this.centralPanelMaterial = new THREE.MeshStandardMaterial({
@@ -95,8 +100,36 @@ export class StageBuilder {
             emissive: this.params.ledColor,
             emissiveIntensity: this.params.ledIntensity,
             metalness: 0.1,
-            roughness: 0.3
+            roughness: 0.3,
+            side: THREE.FrontSide
         });
+    }
+
+    createLedTexture() {
+        const size = 64;
+        const canvas = document.createElement('canvas');
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext('2d');
+
+        ctx.fillStyle = '#0c0c0c';
+        ctx.fillRect(0, 0, size, size);
+
+        ctx.fillStyle = '#1a1a1a';
+        for (let y = 4; y < size; y += 8) {
+            for (let x = 4; x < size; x += 8) {
+                ctx.beginPath();
+                ctx.arc(x, y, 1.5, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        const texture = new THREE.CanvasTexture(canvas);
+        texture.wrapS = THREE.RepeatWrapping;
+        texture.wrapT = THREE.RepeatWrapping;
+        texture.repeat.set(4, 4);
+        texture.anisotropy = 4;
+        return texture;
     }
 
     createFloor() {
