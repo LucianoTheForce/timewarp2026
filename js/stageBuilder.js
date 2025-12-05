@@ -25,6 +25,18 @@ export class StageBuilder {
         this.backScaffoldGroup.name = 'backScaffold';
         this.scene.add(this.backScaffoldGroup);
 
+        this.railingsGroup = new THREE.Group();
+        this.railingsGroup.name = 'railings';
+        this.scene.add(this.railingsGroup);
+
+        this.stairsGroup = new THREE.Group();
+        this.stairsGroup.name = 'stairs';
+        this.scene.add(this.stairsGroup);
+
+        this.risersGroup = new THREE.Group();
+        this.risersGroup.name = 'djRisers';
+        this.scene.add(this.risersGroup);
+
         this.floor = null;
 
         // Parameters - default values
@@ -57,6 +69,17 @@ export class StageBuilder {
             frontDepth: 2.5,
             showDimensions: false,
             backScaffoldEnabled: true,
+            railingsEnabled: true,
+            stairsEnabled: true,
+            risersEnabled: true,
+            railingHeight: 1.1,
+            railingThickness: 0.04,
+            stairsWidth: 2.0,
+            stairsDepth: 3.0,
+            riserCount: 4,
+            riserWidth: 2.0,
+            riserDepth: 2.0,
+            riserHeight: 1.0,
 
             // Pipe params (2m standard)
             pipeLength: 2.0, // Fixed 2m pipes
@@ -95,6 +118,9 @@ export class StageBuilder {
         this.ledExternalMaterial = null;
         this.clothMaterial = null;
         this.centralPanelMaterial = null;
+        this.railingMaterial = null;
+        this.stairsMaterial = null;
+        this.riserMaterial = null;
 
         // Video texture
         this.videoTexture = null;
@@ -158,6 +184,24 @@ export class StageBuilder {
             metalness: 0.0,
             roughness: 0.9,
             side: THREE.DoubleSide
+        });
+
+        this.railingMaterial = new THREE.MeshStandardMaterial({
+            color: 0x7fb7ff,
+            metalness: 0.3,
+            roughness: 0.6
+        });
+
+        this.stairsMaterial = new THREE.MeshStandardMaterial({
+            color: 0x888888,
+            metalness: 0.1,
+            roughness: 0.8
+        });
+
+        this.riserMaterial = new THREE.MeshStandardMaterial({
+            color: 0x333333,
+            metalness: 0.2,
+            roughness: 0.7
         });
     }
 
@@ -301,6 +345,9 @@ export class StageBuilder {
         this.clearStageDeck();
         this.clearDimensions();
         this.clearBackScaffold();
+        this.clearRailings();
+        this.clearStairs();
+        this.clearRisers();
         this.allLedPanels = [];
         this.stageDeck.position.set(0, 0, 0);
 
@@ -313,6 +360,18 @@ export class StageBuilder {
 
         if (this.params.backScaffoldEnabled) {
             this.buildBackScaffold();
+        }
+
+        if (this.params.railingsEnabled) {
+            this.buildRailings();
+        }
+
+        if (this.params.stairsEnabled) {
+            this.buildStairs();
+        }
+
+        if (this.params.risersEnabled) {
+            this.buildRisers();
         }
 
         if (this.params.showDimensions) {
@@ -371,6 +430,33 @@ export class StageBuilder {
             if (child.material && child.material.map) child.material.map.dispose();
             if (child.material) child.material.dispose();
             this.dimensionGroup.remove(child);
+        }
+    }
+
+    clearRailings() {
+        while (this.railingsGroup.children.length > 0) {
+            const child = this.railingsGroup.children[0];
+            if (child.geometry) child.geometry.dispose();
+            if (child.material) child.material.dispose();
+            this.railingsGroup.remove(child);
+        }
+    }
+
+    clearStairs() {
+        while (this.stairsGroup.children.length > 0) {
+            const child = this.stairsGroup.children[0];
+            if (child.geometry) child.geometry.dispose();
+            if (child.material) child.material.dispose();
+            this.stairsGroup.remove(child);
+        }
+    }
+
+    clearRisers() {
+        while (this.risersGroup.children.length > 0) {
+            const child = this.risersGroup.children[0];
+            if (child.geometry) child.geometry.dispose();
+            if (child.material) child.material.dispose();
+            this.risersGroup.remove(child);
         }
     }
 
@@ -557,6 +643,109 @@ export class StageBuilder {
             tower.position.set(x, 0, z);
             tower.rotation.y = 0;
             this.backScaffoldGroup.add(tower);
+        }
+    }
+
+    buildRailings() {
+        const deckBox = new THREE.Box3().setFromObject(this.stageDeck);
+        if (!isFinite(deckBox.min.x) || !isFinite(deckBox.max.x)) return;
+
+        const { railingHeight, railingThickness, stairsWidth, stairsDepth } = this.params;
+        const y = this.params.deckHeight + railingHeight / 2;
+        const t = railingThickness;
+
+        // Passagens de escada nos lados
+        const gapDepth = stairsDepth;
+        const gapCenterZ = (deckBox.min.z + deckBox.max.z) / 2;
+        const gapMinZ = gapCenterZ - gapDepth / 2;
+        const gapMaxZ = gapCenterZ + gapDepth / 2;
+
+        const addSegment = (x, z, w, d, rotY = 0) => {
+            const geom = new THREE.BoxGeometry(w, railingHeight, d);
+            const mesh = new THREE.Mesh(geom, this.railingMaterial.clone());
+            mesh.position.set(x, y, z);
+            mesh.rotation.y = rotY;
+            this.railingsGroup.add(mesh);
+        };
+
+        // Frente
+        addSegment((deckBox.min.x + deckBox.max.x) / 2, deckBox.min.z - t / 2, deckBox.max.x - deckBox.min.x, t);
+        // Traseira
+        addSegment((deckBox.min.x + deckBox.max.x) / 2, deckBox.max.z + t / 2, deckBox.max.x - deckBox.min.x, t);
+
+        // Lado esquerdo com gap
+        const leftX = deckBox.min.x - t / 2;
+        if (gapMinZ > deckBox.min.z) {
+            addSegment(leftX, (deckBox.min.z + gapMinZ) / 2, t, gapMinZ - deckBox.min.z);
+        }
+        if (deckBox.max.z > gapMaxZ) {
+            addSegment(leftX, (gapMaxZ + deckBox.max.z) / 2, t, deckBox.max.z - gapMaxZ);
+        }
+
+        // Lado direito com gap
+        const rightX = deckBox.max.x + t / 2;
+        if (gapMinZ > deckBox.min.z) {
+            addSegment(rightX, (deckBox.min.z + gapMinZ) / 2, t, gapMinZ - deckBox.min.z);
+        }
+        if (deckBox.max.z > gapMaxZ) {
+            addSegment(rightX, (gapMaxZ + deckBox.max.z) / 2, t, deckBox.max.z - gapMaxZ);
+        }
+    }
+
+    buildStairs() {
+        if (!this.params.stairsEnabled) return;
+        const deckBox = new THREE.Box3().setFromObject(this.stageDeck);
+        if (!isFinite(deckBox.min.x) || !isFinite(deckBox.max.x)) return;
+
+        const { stairsWidth, stairsDepth } = this.params;
+        const h = this.params.deckHeight;
+
+        const y = h / 2;
+        const z = (deckBox.min.z + deckBox.max.z) / 2;
+
+        const leftX = deckBox.min.x - stairsWidth / 2 - 0.1;
+        const rightX = deckBox.max.x + stairsWidth / 2 + 0.1;
+
+        const geom = new THREE.BoxGeometry(stairsWidth, h, stairsDepth);
+
+        const leftStairs = new THREE.Mesh(geom, this.stairsMaterial.clone());
+        leftStairs.position.set(leftX, y, z);
+        leftStairs.userData.type = 'stairs';
+        this.stairsGroup.add(leftStairs);
+
+        const rightStairs = new THREE.Mesh(geom, this.stairsMaterial.clone());
+        rightStairs.position.set(rightX, y, z);
+        rightStairs.userData.type = 'stairs';
+        this.stairsGroup.add(rightStairs);
+    }
+
+    buildRisers() {
+        if (!this.params.risersEnabled) return;
+        const deckBox = new THREE.Box3().setFromObject(this.stageDeck);
+        if (!isFinite(deckBox.min.x) || !isFinite(deckBox.max.x)) return;
+
+        const {
+            riserCount,
+            riserWidth,
+            riserDepth,
+            riserHeight,
+            backstageDepth,
+            djDepth
+        } = this.params;
+
+        const totalWidth = riserCount * riserWidth;
+        const startX = -totalWidth / 2 + riserWidth / 2;
+        // Posicionar risers dentro da zona DJ (aproximado)
+        const zDj = -(backstageDepth / 2 - djDepth / 2) + this.stageDeck.position.z;
+        const y = this.params.deckHeight + riserHeight / 2;
+
+        for (let i = 0; i < riserCount; i++) {
+            const x = startX + i * riserWidth;
+            const geom = new THREE.BoxGeometry(riserWidth, riserHeight, riserDepth);
+            const mesh = new THREE.Mesh(geom, this.riserMaterial.clone());
+            mesh.position.set(x, y, zDj);
+            mesh.userData.type = 'riser';
+            this.risersGroup.add(mesh);
         }
     }
     isRearFace(towerPosition, faceIndex) {

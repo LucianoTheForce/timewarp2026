@@ -329,6 +329,18 @@ class PalcoParametrico {
             this.stageBuilder.setParam('hideRearPanels', e.target.checked);
         });
 
+        document.getElementById('railings-enabled').addEventListener('change', (e) => {
+            this.stageBuilder.setParam('railingsEnabled', e.target.checked);
+        });
+
+        document.getElementById('stairs-enabled').addEventListener('change', (e) => {
+            this.stageBuilder.setParam('stairsEnabled', e.target.checked);
+        });
+
+        document.getElementById('risers-enabled').addEventListener('change', (e) => {
+            this.stageBuilder.setParam('risersEnabled', e.target.checked);
+        });
+
         document.getElementById('show-glb-model').addEventListener('change', (e) => {
             if (e.target.checked && !this.glbModel) {
                 this.loadGLB();
