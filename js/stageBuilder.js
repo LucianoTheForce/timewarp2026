@@ -329,7 +329,7 @@ export class StageBuilder {
             // noise
             const imgData = ctx.getImageData(0, 0, size, size);
             for (let i = 0; i < imgData.data.length; i += 4) {
-                const n = 120 + Math.random() * 40;
+                const n = 110 + Math.random() * 60;
                 imgData.data[i] = imgData.data[i + 1] = imgData.data[i + 2] = n;
                 imgData.data[i + 3] = 255;
             }

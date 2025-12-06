@@ -73,6 +73,7 @@ class PalcoParametrico {
         this.skyDome = this.createSunsetSky();
         this.scene.add(this.skyDome);
         this.scene.background = null;
+        this.scene.fog = null;
 
         // Initialize subsystems
         this.stageBuilder = new StageBuilder(this.scene);
@@ -294,7 +295,7 @@ class PalcoParametrico {
             toggleSky.addEventListener('change', (e) => {
                 this.sunsetSkyEnabled = e.target.checked;
                 if (this.skyDome) this.skyDome.visible = this.sunsetSkyEnabled;
-                this.scene.fog = this.sunsetSkyEnabled ? new THREE.FogExp2(0x4a4a4a, 0.008) : null;
+                this.scene.fog = this.sunsetSkyEnabled ? null : new THREE.FogExp2(0x4a4a4a, 0.008);
                 this.scene.background = this.sunsetSkyEnabled ? null : this.defaultBgColor;
             });
         }
