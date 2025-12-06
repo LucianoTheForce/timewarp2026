@@ -33,7 +33,8 @@ class PalcoParametrico {
     init() {
         // Scene
         this.scene = new THREE.Scene();
-        this.scene.background = new THREE.Color(0x4a4a4a);
+        this.defaultBgColor = new THREE.Color(0x4a4a4a);
+        this.scene.background = this.defaultBgColor;
         this.scene.fog = new THREE.FogExp2(0x4a4a4a, 0.008);
 
         // Camera
@@ -67,6 +68,11 @@ class PalcoParametrico {
         this.controls.minDistance = 5;
         this.controls.maxDistance = 100;
         this.controls.target.set(0, 0, 0);
+
+        this.sunsetSkyEnabled = true;
+        this.skyDome = this.createSunsetSky();
+        this.scene.add(this.skyDome);
+        this.scene.background = null;
 
         // Initialize subsystems
         this.stageBuilder = new StageBuilder(this.scene);
@@ -283,9 +289,26 @@ class PalcoParametrico {
             this.controls.autoRotateSpeed = 1.0;
         });
 
+        const toggleSky = document.getElementById('enable-sky');
+        if (toggleSky) {
+            toggleSky.addEventListener('change', (e) => {
+                this.sunsetSkyEnabled = e.target.checked;
+                if (this.skyDome) this.skyDome.visible = this.sunsetSkyEnabled;
+                this.scene.fog = this.sunsetSkyEnabled ? new THREE.FogExp2(0x4a4a4a, 0.008) : null;
+                this.scene.background = this.sunsetSkyEnabled ? null : this.defaultBgColor;
+            });
+        }
+
         document.getElementById('show-floor').addEventListener('change', (e) => {
             this.stageBuilder.setFloorVisible(e.target.checked);
         });
+
+        const concreteToggle = document.getElementById('concrete-floor');
+        if (concreteToggle) {
+            concreteToggle.addEventListener('change', (e) => {
+                this.stageBuilder.applyConcreteFloor(e.target.checked);
+            });
+        }
 
         document.getElementById('show-stage-deck').addEventListener('change', (e) => {
             this.stageBuilder.setParam('stageDeckEnabled', e.target.checked);
@@ -387,6 +410,52 @@ class PalcoParametrico {
         });
     }
 
+    createSunsetSky() {
+        const size = 1024;
+        const canvas = document.createElement('canvas');
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext('2d');
+
+        // Gradient
+        const grad = ctx.createLinearGradient(0, size, 0, 0);
+        grad.addColorStop(0, '#2a1f1a');
+        grad.addColorStop(0.35, '#f47c42');
+        grad.addColorStop(0.55, '#344c73');
+        grad.addColorStop(1, '#0b1027');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, size, size);
+
+        // Stars
+        ctx.fillStyle = 'white';
+        const starCount = 900;
+        for (let i = 0; i < starCount; i++) {
+            const x = Math.random() * size;
+            const y = Math.random() * (size * 0.7);
+            const r = Math.random() * 1.2 + 0.2;
+            ctx.globalAlpha = Math.random() * 0.8 + 0.2;
+            ctx.beginPath();
+            ctx.arc(x, y, r, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        ctx.globalAlpha = 1.0;
+
+        const texture = new THREE.CanvasTexture(canvas);
+        texture.wrapS = THREE.ClampToEdgeWrapping;
+        texture.wrapT = THREE.ClampToEdgeWrapping;
+        texture.needsUpdate = true;
+
+        const material = new THREE.MeshBasicMaterial({
+            map: texture,
+            side: THREE.BackSide,
+            toneMapped: false
+        });
+        const geo = new THREE.SphereGeometry(500, 32, 32);
+        const mesh = new THREE.Mesh(geo, material);
+        mesh.name = 'sunsetSkyDome';
+        return mesh;
+    }
+
     setupSlider(sliderId, displayId, callback) {
         const slider = document.getElementById(sliderId);
         const display = document.getElementById(displayId);
@@ -446,6 +515,10 @@ class PalcoParametrico {
             glbModel: {
                 visible: !!(this.glbModel && this.glbModel.visible),
                 path: './assets/GANGANBAIAU.glb'
+            },
+            visual: {
+                skyEnabled: this.sunsetSkyEnabled,
+                concreteFloor: this.stageBuilder ? this.stageBuilder.params.useConcreteFloor : false
             }
         };
 
@@ -523,6 +596,9 @@ class PalcoParametrico {
 
         // Update lighting
         this.lightingSystem.update(delta);
+
+        // Sky visibility (in case it was toggled)
+        if (this.skyDome) this.skyDome.visible = this.sunsetSkyEnabled;
 
         // Render
         this.renderer.render(this.scene, this.camera);

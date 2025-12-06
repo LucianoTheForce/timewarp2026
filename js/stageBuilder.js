@@ -46,6 +46,9 @@ export class StageBuilder {
         this.scene.add(this.lasersGroup);
 
         this.floor = null;
+        this.concreteTexture = null;
+        this.concreteMaterial = null;
+        this.defaultFloorMaterial = null;
 
         // Parameters - default values
         this.params = {
@@ -97,6 +100,7 @@ export class StageBuilder {
             stageBandDepth: 0.12,
             laserHeight: 20,
             laserColor: 0x00ff00,
+            useConcreteFloor: true,
 
             // Pipe params (2m standard)
             pipeLength: 2.0, // Fixed 2m pipes
@@ -300,11 +304,57 @@ export class StageBuilder {
         this.gridHelper = new THREE.GridHelper(200, 200, 0x888888, 0x666666);
         this.gridHelper.position.set(0, 0.01, 0);
         this.scene.add(this.gridHelper);
+
+        // Piso concreto opcional
+        this.applyConcreteFloor(this.params.useConcreteFloor);
     }
 
     setFloorVisible(visible) {
         if (this.floor) this.floor.visible = visible;
         if (this.gridHelper) this.gridHelper.visible = visible;
+    }
+
+    applyConcreteFloor(enabled) {
+        this.params.useConcreteFloor = enabled;
+        if (!this.floor) return;
+
+        if (!this.concreteTexture) {
+            const size = 512;
+            const canvas = document.createElement('canvas');
+            canvas.width = size;
+            canvas.height = size;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#6b6b6b';
+            ctx.fillRect(0, 0, size, size);
+            // noise
+            const imgData = ctx.getImageData(0, 0, size, size);
+            for (let i = 0; i < imgData.data.length; i += 4) {
+                const n = 120 + Math.random() * 40;
+                imgData.data[i] = imgData.data[i + 1] = imgData.data[i + 2] = n;
+                imgData.data[i + 3] = 255;
+            }
+            ctx.putImageData(imgData, 0, 0);
+            this.concreteTexture = new THREE.CanvasTexture(canvas);
+            this.concreteTexture.wrapS = THREE.RepeatWrapping;
+            this.concreteTexture.wrapT = THREE.RepeatWrapping;
+            this.concreteTexture.repeat.set(20, 20);
+        }
+
+        if (!this.concreteMaterial) {
+            this.concreteMaterial = new THREE.MeshStandardMaterial({
+                map: this.concreteTexture,
+                color: 0xffffff,
+                roughness: 0.95,
+                metalness: 0.05
+            });
+        }
+
+        if (!this.defaultFloorMaterial) {
+            this.defaultFloorMaterial = this.floor.material;
+        }
+
+        this.floor.material = enabled ? this.concreteMaterial : this.defaultFloorMaterial;
+        this.floor.material.needsUpdate = true;
     }
 
     setTowersVisible(visible) {
@@ -1559,6 +1609,9 @@ export class StageBuilder {
                 bandHeight: this.params.stageBandHeight,
                 bandGap: this.params.stageBandGap,
                 bandDepth: this.params.stageBandDepth
+            },
+            floor: {
+                concrete: this.params.useConcreteFloor
             },
             lasers: {
                 enabled: this.params.lasersEnabled,
