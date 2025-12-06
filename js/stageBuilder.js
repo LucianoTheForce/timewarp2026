@@ -1923,19 +1923,20 @@ export class StageBuilder {
         if (!this.params.crowdEnabled) return;
 
         const deckBox = new THREE.Box3().setFromObject(this.stageDeck);
-        if (!isFinite(deckBox.min.x)) return;
+        const towerBox = new THREE.Box3().setFromObject(this.towersGroup);
+        if (!isFinite(deckBox.min.x) || !isFinite(towerBox.max.z)) return;
 
-        const density = this.params.crowdDensity; // pessoas por m?
+        const density = this.params.crowdDensity; // pessoas por m²
         const peoplePositions = [];
 
-        // Pista em frente ao palco (lado +Z)
+        // Pista em frente ao palco (lado +Z), iniciando 5m após a última torre
         if (this.params.crowdPitEnabled) {
             const pitWidth = deckBox.max.x - deckBox.min.x;
             const pitDepth = 12; // profundidade fixa da pista para frente
             const gridSpacing = Math.sqrt(1 / density);
             const numRows = Math.floor(pitDepth / gridSpacing);
             const numCols = Math.floor(pitWidth / gridSpacing);
-            const startZ = deckBox.max.z + 2;
+            const startZ = towerBox.max.z + 5;
 
             for (let row = 0; row < numRows; row++) {
                 for (let col = 0; col < numCols; col++) {
@@ -1954,23 +1955,32 @@ export class StageBuilder {
             }
         }
 
-        // Backstage atr?s do palco (lado -Z)
+        // Backstage sobre o deck (lado -Z), evitando área do DJ
         if (this.params.crowdBackstageEnabled) {
-            const backstageWidth = this.params.backstageLeftWidth + this.params.backstageCenterWidth + this.params.backstageRightWidth;
-            const backstageDepth = this.params.backstageDepth;
             const gridSpacing = Math.sqrt(1 / density);
-            const numRows = Math.floor(backstageDepth / gridSpacing);
-            const numCols = Math.floor(backstageWidth / gridSpacing);
 
-            const backstageStartX = deckBox.min.x;
-            const startZ = deckBox.min.z - 0.5;
+            // Dimensões da área DJ para excluir
+            const module = this.params.deckModuleSize;
+            const djW = module * 7;
+            const djD = module * 3;
+            const zDj = -(this.params.backstageDepth / 2 - this.params.djDepth / 2) + this.stageDeck.position.z;
+            const djMinX = -djW / 2 + this.stageDeck.position.x;
+            const djMaxX = djW / 2 + this.stageDeck.position.x;
+            const djMinZ = zDj - djD / 2;
+            const djMaxZ = zDj + djD / 2;
+
+            const numRows = Math.floor((deckBox.max.z - deckBox.min.z) / gridSpacing);
+            const numCols = Math.floor((deckBox.max.x - deckBox.min.x) / gridSpacing);
 
             for (let row = 0; row < numRows; row++) {
                 for (let col = 0; col < numCols; col++) {
                     const randomOffset = (Math.random() - 0.5) * gridSpacing * 0.5;
-                    const x = backstageStartX + (col + 0.5) * gridSpacing + randomOffset;
-                    const z = startZ - (row + 0.5) * gridSpacing + randomOffset * 0.5;
+                    const x = deckBox.min.x + (col + 0.5) * gridSpacing + randomOffset;
+                    const z = deckBox.min.z + (row + 0.5) * gridSpacing + randomOffset * 0.5;
                     const y = this.params.deckHeight + 0.9;
+
+                    // pular área do DJ
+                    if (x > djMinX && x < djMaxX && z > djMinZ && z < djMaxZ) continue;
 
                     peoplePositions.push({
                         x, y, z,
