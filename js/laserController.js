@@ -10,7 +10,7 @@ export class LaserController {
 
         this.enabled = true;
         this.options = {
-            pattern: 'cross', // cross = horizontal + vertical
+            patternIndex: 0, // 0..9 variações
             hue: 120,
             speed: 1,
             distance: 80,
@@ -19,6 +19,19 @@ export class LaserController {
 
         this.lasers = [];
         this.lastSignature = '';
+
+        this.variations = [
+            { dx: 0, dz: 0, dy: 0 },
+            { dx: 1.5, dz: 0, dy: 2 },
+            { dx: -1.5, dz: 0, dy: 2 },
+            { dx: 0, dz: 1.5, dy: 1 },
+            { dx: 0, dz: -1.5, dy: 1 },
+            { dx: 1.5, dz: 1.5, dy: 0 },
+            { dx: -1.5, dz: 1.5, dy: 0 },
+            { dx: 1.5, dz: 0, dy: 3 },
+            { dx: -1.5, dz: 0, dy: 3 },
+            { dx: 0, dz: 0, dy: 3 }
+        ];
     }
 
     setEnabled(enabled) {
@@ -40,8 +53,9 @@ export class LaserController {
         laserParty.globalAnimationSpeed = speed;
     }
 
-    setPattern(pattern) {
-        this.options.pattern = pattern;
+    setPattern(index) {
+        const idx = Math.max(0, Math.min(this.variations.length - 1, parseInt(index, 10) || 0));
+        this.options.patternIndex = idx;
         this.lastSignature = '';
     }
 
@@ -56,25 +70,39 @@ export class LaserController {
 
     signature(towersGroup) {
         if (!towersGroup) return '';
-        return towersGroup.children.map((c) => `${c.position.x.toFixed(2)},${c.position.y.toFixed(2)},${c.position.z.toFixed(2)}`).join('|');
+        const base = towersGroup.children.map((c) => `${c.position.x.toFixed(2)},${c.position.y.toFixed(2)},${c.position.z.toFixed(2)}`).join('|');
+        return `${base}|p${this.options.patternIndex}`;
     }
 
     buildFromTowers(towersGroup) {
         this.clear();
         if (!this.enabled || !towersGroup) return;
 
-        const distance = this.options.distance;
         const thickness = this.options.thickness;
         const hue = this.options.hue;
         const speed = this.options.speed;
+        const variation = this.variations[this.options.patternIndex] || this.variations[0];
 
-        towersGroup.children.forEach((tower, idx) => {
-            if (idx % 2 !== 0) return; // uma torre sim, outra não
-
+        const centers = towersGroup.children.map((tower) => {
             const box = new THREE.Box3().setFromObject(tower);
+            return { box, center: box.getCenter(new THREE.Vector3()) };
+        });
+
+        const total = centers.length;
+
+        centers.forEach((entry, idx) => {
+            const { box, center } = entry;
             if (!isFinite(box.max.y)) return;
-            const center = box.getCenter(new THREE.Vector3());
             const baseY = box.max.y;
+
+            const oppositeIdx = total - 1 - idx;
+            const targetEntry = centers[oppositeIdx] || entry;
+            const targetCenter = targetEntry.center.clone();
+            targetCenter.y = targetEntry.box.max.y * 0.7;
+            targetCenter.x += variation.dx;
+            targetCenter.y += variation.dy;
+            targetCenter.z += variation.dz;
+            const distance = center.distanceTo(targetCenter) + 2;
 
             const createLaser = (angleX = 0, angleY = 0) => {
                 const laser = laserParty.new({
@@ -89,17 +117,17 @@ export class LaserController {
                     angleX,
                     angleY,
                     raycast: false,
-                    animation: this.options.pattern === 'spin' ? 'exampleSpin' : null,
-                    colorAnimation: this.options.pattern === 'hue-shift' ? 'exampleHue' : null
+                    animation: null,
+                    colorAnimation: null
                 });
                 laser.position.set(center.x, baseY, center.z);
+                laser.pointAt(targetCenter);
                 this.lasers.push(laser);
             };
 
-            // vertical (subindo)
-            createLaser(-Math.PI / 2, 0);
-            // horizontal (para frente +Z)
+            // dois feixes por torre: 1 reto e 1 com leve inclinação
             createLaser(0, 0);
+            createLaser(variation.dy * 0.02, variation.dx * 0.02);
         });
     }
 

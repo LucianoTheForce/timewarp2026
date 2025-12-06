@@ -449,10 +449,6 @@ export class StageBuilder {
             this.buildRisers();
         }
 
-        if (this.params.lasersEnabled) {
-            this.buildLasers();
-        }
-
         if (this.params.showDimensions) {
             this.buildDimensionLines();
         }
