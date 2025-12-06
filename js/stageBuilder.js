@@ -37,6 +37,10 @@ export class StageBuilder {
         this.risersGroup.name = 'djRisers';
         this.scene.add(this.risersGroup);
 
+        this.stageBandsGroup = new THREE.Group();
+        this.stageBandsGroup.name = 'stageBands';
+        this.scene.add(this.stageBandsGroup);
+
         this.lasersGroup = new THREE.Group();
         this.lasersGroup.name = 'lasers';
         this.scene.add(this.lasersGroup);
@@ -417,6 +421,7 @@ export class StageBuilder {
         this.clearStairs();
         this.clearRisers();
         this.clearLasers();
+        this.clearStageBands();
         this.allLedPanels = [];
         this.stageDeck.position.set(0, 0, 0);
 
@@ -429,6 +434,7 @@ export class StageBuilder {
 
         if (this.params.backScaffoldEnabled) {
             this.buildBackScaffold();
+            this.buildStageBands();
         }
 
         if (this.params.railingsEnabled) {
@@ -484,6 +490,15 @@ export class StageBuilder {
             if (child.geometry) child.geometry.dispose();
             if (child.material) child.material.dispose();
             this.stageDeck.remove(child);
+        }
+    }
+
+    clearStageBands() {
+        while (this.stageBandsGroup.children.length > 0) {
+            const child = this.stageBandsGroup.children[0];
+            if (child.geometry) child.geometry.dispose();
+            if (child.material) child.material.dispose();
+            this.stageBandsGroup.remove(child);
         }
     }
 
@@ -628,33 +643,6 @@ export class StageBuilder {
         djMesh.userData.type = 'djArea';
         this.stageDeck.add(djMesh);
 
-        // Faixas de LED frontais (translúcidas) e traseiras (normais)
-        if (this.params.stageFrontBandsEnabled || this.params.stageRearBandsEnabled) {
-            const deckBox = new THREE.Box3().setFromObject(this.stageDeck);
-            const bandCount = this.params.stageBandCount || 3;
-            const bandH = this.params.stageBandHeight || 0.6;
-            const bandGap = this.params.stageBandGap ?? 0.15;
-            const bandDepth = this.params.stageBandDepth || 0.12;
-            const width = deckBox.max.x - deckBox.min.x;
-            const centerX = (deckBox.min.x + deckBox.max.x) / 2;
-            const baseY = height + bandH / 2;
-
-            const addBands = (isFront) => {
-                const matBase = isFront ? this.stageFrontLedMaterial : this.stageRearLedMaterial;
-                const zPos = isFront ? deckBox.min.z - bandDepth / 2 : deckBox.max.z + bandDepth / 2;
-                for (let i = 0; i < bandCount; i++) {
-                    const geom = new THREE.BoxGeometry(width, bandH, bandDepth);
-                    const mesh = new THREE.Mesh(geom, matBase.clone());
-                    const yCenter = baseY + i * (bandH + bandGap);
-                    mesh.position.set(centerX, yCenter, zPos);
-                    mesh.userData.type = 'stageBand';
-                    this.stageDeck.add(mesh);
-                }
-            };
-
-            if (this.params.stageFrontBandsEnabled) addBands(true);
-            if (this.params.stageRearBandsEnabled) addBands(false);
-        }
     }
 
     alignStageDeckToFront() {
@@ -871,6 +859,42 @@ export class StageBuilder {
             mesh.userData.type = 'riser';
             this.risersGroup.add(mesh);
         }
+    }
+
+    buildStageBands() {
+        if (!this.params.stageFrontBandsEnabled && !this.params.stageRearBandsEnabled) return;
+        const deckBox = new THREE.Box3().setFromObject(this.stageDeck);
+        if (!isFinite(deckBox.min.x) || !isFinite(deckBox.max.x)) return;
+
+        const scaffoldBox = new THREE.Box3().setFromObject(this.backScaffoldGroup);
+        const bandCount = this.params.stageBandCount || 3;
+        const bandH = this.params.stageBandHeight || 0.6;
+        const bandGap = this.params.stageBandGap ?? 0.15;
+        const bandDepth = this.params.stageBandDepth || 0.12;
+        const width = deckBox.max.x - deckBox.min.x;
+        const centerX = (deckBox.min.x + deckBox.max.x) / 2;
+        const baseY = this.params.deckHeight + bandH / 2;
+
+        // Frente do andaime (face voltada para o palco)
+        const zFront = isFinite(scaffoldBox.min.z) ? scaffoldBox.min.z - bandDepth / 2 - 0.05 : deckBox.min.z - bandDepth / 2;
+        // Traseira do andaime
+        const zRear = isFinite(scaffoldBox.max.z) ? scaffoldBox.max.z + bandDepth / 2 + 0.05 : deckBox.max.z + bandDepth / 2;
+
+        const addBands = (isFront) => {
+            const matBase = isFront ? this.stageFrontLedMaterial : this.stageRearLedMaterial;
+            const zPos = isFront ? zFront : zRear;
+            for (let i = 0; i < bandCount; i++) {
+                const geom = new THREE.BoxGeometry(width, bandH, bandDepth);
+                const mesh = new THREE.Mesh(geom, matBase.clone());
+                const yCenter = baseY + i * (bandH + bandGap);
+                mesh.position.set(centerX, yCenter, zPos);
+                mesh.userData.type = 'stageBand';
+                this.stageBandsGroup.add(mesh);
+            }
+        };
+
+        if (this.params.stageFrontBandsEnabled) addBands(true);
+        if (this.params.stageRearBandsEnabled) addBands(false);
     }
 
     buildLasers() {
