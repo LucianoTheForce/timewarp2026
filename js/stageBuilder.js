@@ -1903,120 +1903,21 @@ export class StageBuilder {
             const centerX = (box.min.x + box.max.x) / 2;
             const centerZ = (box.min.z + box.min.z) / 2;
 
-            // Calcular número de níveis (cada 2m)
-            const numLevels = Math.floor(towerHeight / 2.0);
-
-            for (let level = 0; level < numLevels; level++) {
-                const yPos = box.min.y + (level + 0.5) * 2.0;
-
-                // P5 no centro de cada cubo, apontando para frente (-Z)
-                const p5Geom = new THREE.BoxGeometry(p5Size, p5Size, p5Size * 1.5);
-                const p5Light = new THREE.Mesh(p5Geom, p5Material.clone());
-                p5Light.position.set(centerX, yPos, box.min.z - 0.1);
-                p5Light.userData.type = 'p5Light';
-                p5Light.userData.towerIndex = towerIdx;
-                p5Light.userData.level = level;
-                this.p5LightsGroup.add(p5Light);
-
-                // Adicionar um cone de luz (visual)
-                const coneGeom = new THREE.ConeGeometry(0.3, 1.5, 8, 1, true);
-                const coneMat = new THREE.MeshBasicMaterial({
-                    color: p5Color,
-                    transparent: true,
-                    opacity: 0.15,
-                    side: THREE.DoubleSide
-                });
-                const cone = new THREE.Mesh(coneGeom, coneMat);
-                cone.rotation.x = Math.PI / 2;
-                cone.position.set(centerX, yPos, box.min.z - 1.2);
-                cone.userData.type = 'p5Cone';
-                this.p5LightsGroup.add(cone);
-            }
-        });
-
-        // Adicionar P5 no palco (andaime traseiro)
-        const scaffoldBox = new THREE.Box3().setFromObject(this.backScaffoldGroup);
-        if (isFinite(scaffoldBox.min.x) && isFinite(scaffoldBox.max.x)) {
-            const scaffoldWidth = scaffoldBox.max.x - scaffoldBox.min.x;
-            const scaffoldHeight = scaffoldBox.max.y - this.params.deckHeight;
-            const numP5 = 8; // 8 luzes ao longo do palco
-            const numLevels = 3; // 3 níveis de altura
-
-            for (let i = 0; i < numP5; i++) {
-                const xPos = scaffoldBox.min.x + (i / (numP5 - 1)) * scaffoldWidth;
-
-                for (let level = 0; level < numLevels; level++) {
-                    const yPos = this.params.deckHeight + (level / (numLevels - 1)) * scaffoldHeight * 0.8;
-
-                    // P5 apontando para frente (-Z)
-                    const p5Geom = new THREE.BoxGeometry(p5Size, p5Size, p5Size * 1.5);
-                    const p5Light = new THREE.Mesh(p5Geom, p5Material.clone());
-                    p5Light.position.set(xPos, yPos, scaffoldBox.min.z - 0.1);
-                    p5Light.userData.type = 'p5Light';
-                    p5Light.userData.stageIndex = i;
-                    p5Light.userData.level = level;
-                    this.p5LightsGroup.add(p5Light);
-
-                    // Cone de luz
-                    const coneGeom = new THREE.ConeGeometry(0.4, 2.0, 8, 1, true);
-                    const coneMat = new THREE.MeshBasicMaterial({
-                        color: p5Color,
-                        transparent: true,
-                        opacity: 0.15,
-                        side: THREE.DoubleSide
-                    });
-                    const cone = new THREE.Mesh(coneGeom, coneMat);
-                    cone.rotation.x = Math.PI / 2;
-                    cone.position.set(xPos, yPos, scaffoldBox.min.z - 1.5);
-                    cone.userData.type = 'p5Cone';
-                    this.p5LightsGroup.add(cone);
-                }
-            }
-        }
-    }
-
-    buildCrowd() {
-        // Limpar crowd existente
-        if (this.crowdInstances) {
-            this.crowdInstances.geometry.dispose();
-            this.crowdInstances.material.dispose();
-            this.crowdGroup.remove(this.crowdInstances);
-            this.crowdInstances = null;
-        }
-        this.crowdData = [];
-        this.crowdCount = 0;
-
-        if (!this.params.crowdEnabled) return;
-
-        const deckBox = new THREE.Box3().setFromObject(this.stageDeck);
-        if (!isFinite(deckBox.min.x)) return;
-
-        const density = this.params.crowdDensity; // pessoas por m²
-        const personSize = 0.4; // largura da pessoa
-        const peoplePositions = [];
-
-        // Calcular área da pista (frente do palco)
-        let pitArea = 0;
-        let pitCapacity = 0;
+            // Pista em frente ao palco (lado +Z)
         if (this.params.crowdPitEnabled) {
-            // Pista: área em frente ao palco
             const pitWidth = deckBox.max.x - deckBox.min.x;
-            const pitDepth = Math.abs(deckBox.min.z) - 2; // até 2m antes do palco
-            pitArea = pitWidth * pitDepth;
-            pitCapacity = Math.floor(pitArea * density);
-
-            // Adicionar pessoas na pista
-            const gridSpacing = Math.sqrt(1 / density); // espaçamento baseado na densidade
+            const pitDepth = 12; // profundidade fixa da pista para frente
+            const gridSpacing = Math.sqrt(1 / density);
             const numRows = Math.floor(pitDepth / gridSpacing);
             const numCols = Math.floor(pitWidth / gridSpacing);
+            const startZ = deckBox.max.z + 2;
 
             for (let row = 0; row < numRows; row++) {
                 for (let col = 0; col < numCols; col++) {
-                    // Adicionar variação aleatória para não parecer grid
                     const randomOffset = (Math.random() - 0.5) * gridSpacing * 0.5;
                     const x = deckBox.min.x + (col + 0.5) * gridSpacing + randomOffset;
-                    const z = deckBox.min.z - 2 - (row + 0.5) * gridSpacing + randomOffset * 0.5;
-                    const y = 0.9; // altura média de pessoa (1.8m / 2)
+                    const z = startZ + (row + 0.5) * gridSpacing + randomOffset * 0.5;
+                    const y = 0.9;
 
                     peoplePositions.push({
                         x, y, z,
@@ -2028,27 +1929,22 @@ export class StageBuilder {
             }
         }
 
-        // Calcular área do backstage
-        let backstageArea = 0;
-        let backstageCapacity = 0;
+        // Backstage atr?s do palco (lado -Z)
         if (this.params.crowdBackstageEnabled) {
-            // Backstage: área atrás do palco
             const backstageWidth = this.params.backstageLeftWidth + this.params.backstageCenterWidth + this.params.backstageRightWidth;
             const backstageDepth = this.params.backstageDepth;
-            backstageArea = backstageWidth * backstageDepth;
-            backstageCapacity = Math.floor(backstageArea * density);
-
             const gridSpacing = Math.sqrt(1 / density);
             const numRows = Math.floor(backstageDepth / gridSpacing);
             const numCols = Math.floor(backstageWidth / gridSpacing);
 
             const backstageStartX = deckBox.min.x;
+            const startZ = deckBox.min.z - 0.5;
 
             for (let row = 0; row < numRows; row++) {
                 for (let col = 0; col < numCols; col++) {
                     const randomOffset = (Math.random() - 0.5) * gridSpacing * 0.5;
                     const x = backstageStartX + (col + 0.5) * gridSpacing + randomOffset;
-                    const z = deckBox.max.z + 0.5 + (row + 0.5) * gridSpacing + randomOffset * 0.5;
+                    const z = startZ - (row + 0.5) * gridSpacing + randomOffset * 0.5;
                     const y = this.params.deckHeight + 0.9; // altura do deck + metade da pessoa
 
                     peoplePositions.push({
