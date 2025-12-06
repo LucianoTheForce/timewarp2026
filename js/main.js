@@ -3,6 +3,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { StageBuilder } from './stageBuilder.js';
 import { LightingSystem } from './lightingSystem.js';
+import { LaserController } from './laserController.js';
 
 class PalcoParametrico {
     constructor() {
@@ -12,6 +13,7 @@ class PalcoParametrico {
         this.controls = null;
         this.stageBuilder = null;
         this.lightingSystem = null;
+        this.laserController = null;
         this.glbModel = null;
         this.clock = new THREE.Clock();
 
@@ -70,6 +72,7 @@ class PalcoParametrico {
         this.stageBuilder = new StageBuilder(this.scene);
         this.lightingSystem = new LightingSystem(this.scene);
         this.lightingSystem.setupLighting();
+        this.laserController = new LaserController(this.scene);
 
         // Build initial stage
         this.stageBuilder.rebuild();
@@ -345,6 +348,31 @@ class PalcoParametrico {
             this.stageBuilder.setParam('risersEnabled', e.target.checked);
         });
 
+        // Laser Party controls
+        const laserColor = document.getElementById('laser-color');
+        if (laserColor) {
+            laserColor.addEventListener('input', (e) => {
+                const color = new THREE.Color(e.target.value);
+                this.laserController.setHue(color.getHSL({}).h * 360);
+            });
+        }
+
+        const laserSpeed = document.getElementById('laser-speed');
+        if (laserSpeed) {
+            laserSpeed.addEventListener('input', (e) => {
+                this.laserController.setSpeed(parseFloat(e.target.value));
+                const label = document.getElementById('laser-speed-val');
+                if (label) label.textContent = e.target.value;
+            });
+        }
+
+        const laserPattern = document.getElementById('laser-pattern');
+        if (laserPattern) {
+            laserPattern.addEventListener('change', (e) => {
+                this.laserController.setPattern(e.target.value);
+            });
+        }
+
         document.getElementById('show-glb-model').addEventListener('change', (e) => {
             if (e.target.checked && !this.glbModel) {
                 this.loadGLB();
@@ -491,6 +519,7 @@ class PalcoParametrico {
 
         // Update stage builder (LED animations)
         this.stageBuilder.update(delta);
+        this.laserController.update(this.stageBuilder.towersGroup);
 
         // Update lighting
         this.lightingSystem.update(delta);

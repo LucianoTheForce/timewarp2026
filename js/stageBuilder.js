@@ -76,7 +76,7 @@ export class StageBuilder {
             railingsEnabled: true,
             stairsEnabled: true,
             risersEnabled: true,
-            lasersEnabled: true,
+            lasersEnabled: false,
             railingHeight: 1.1,
             railingThickness: 0.04,
             stairsWidth: 2.0,
