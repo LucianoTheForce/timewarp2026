@@ -513,11 +513,30 @@
         <div class="control-group">
             <label>Modo de Cor</label>
             <select id="led-effect">
-                <option value="solid">Cor Solida</option>
-                <option value="rainbow">Arco-Iris</option>
+                <option value="solid">Cor Sólida</option>
+                <option value="rainbow">Arco-Íris</option>
                 <option value="pulse">Pulsar</option>
                 <option value="wave" selected>Onda</option>
-                <option value="video">Video</option>
+                <option value="strobe">Strobe</option>
+                <option value="chase">Chase (Perseguição)</option>
+                <option value="tower-wave">Onda por Torre</option>
+                <option value="vertical-scan">Scanner Vertical</option>
+                <option value="sparkle">Sparkle (Brilho)</option>
+                <option value="rainbow-wave">Arco-Íris Ondulado</option>
+                <option value="fire">Fogo</option>
+                <option value="alternate">Torres Alternadas</option>
+                <option value="wipe-horizontal">Cortina Horizontal</option>
+                <option value="wipe-vertical">Cortina Vertical</option>
+                <option value="center-out">Centro para Fora</option>
+                <option value="edge-in">Bordas para Centro</option>
+                <option value="diagonal">Diagonal</option>
+                <option value="kaleidoscope">Caleidoscópio</option>
+                <option value="matrix-rain">Matrix Rain</option>
+                <option value="rings">Anéis Pulsantes</option>
+                <option value="spin">Rotação Espiral</option>
+                <option value="checkerboard">Tabuleiro Xadrez</option>
+                <option value="build-up">Build Up (EDM)</option>
+                <option value="video">Vídeo</option>
             </select>
         </div>
 
@@ -553,20 +572,14 @@
             <label>Rotacao Automatica</label>
         </div>
 
-        <div class="checkbox-group">
-            <input type="checkbox" id="enable-sky" checked>
-            <label>Ceu por do sol com estrelas</label>
-        </div>
+
 
         <div class="checkbox-group">
             <input type="checkbox" id="show-floor" checked>
             <label>Mostrar Piso</label>
         </div>
 
-        <div class="checkbox-group">
-            <input type="checkbox" id="concrete-floor" checked>
-            <label>Piso Concreto (PBR)</label>
-        </div>
+
 
         <div class="checkbox-group">
             <input type="checkbox" id="show-stage-deck" checked>
@@ -599,19 +612,72 @@
         </div>
 
         <div class="control-group">
-            <label>Padrao Laser</label>
-            <select id="laser-pattern">
-                <option value="0" selected>Var 1</option>
-                <option value="1">Var 2</option>
-                <option value="2">Var 3</option>
-                <option value="3">Var 4</option>
-                <option value="4">Var 5</option>
-                <option value="5">Var 6</option>
-                <option value="6">Var 7</option>
-                <option value="7">Var 8</option>
-                <option value="8">Var 9</option>
-                <option value="9">Var 10</option>
+            <label>Animação Laser</label>
+            <select id="laser-animation">
+                <option value="static" selected>Estático</option>
+                <option value="pulse">Pulsar</option>
+                <option value="chase">Chase (Perseguição)</option>
+                <option value="sweep">Varredura Horizontal</option>
+                <option value="rotate">Rotação</option>
+                <option value="random">Aleatório</option>
+                <option value="tower-wave">Onda por Torre</option>
+                <option value="strobe">Strobe</option>
+                <option value="stage-sweep">Varredura Palco</option>
             </select>
+        </div>
+
+        <div class="checkbox-group">
+            <input type="checkbox" id="stage-lasers-enabled" checked>
+            <label>Lasers no Palco</label>
+        </div>
+
+        <h3>Luzes P5</h3>
+
+        <div class="checkbox-group">
+            <input type="checkbox" id="p5-lights-enabled" checked>
+            <label>Luzes P5</label>
+        </div>
+
+        <div class="control-group color-picker-wrapper">
+            <label>Cor Luzes P5</label>
+            <input type="color" id="p5-light-color" value="#ffffff">
+        </div>
+
+        <div class="control-group">
+            <label>Intensidade P5 <span class="value-display" id="p5-intensity-val">2.0</span></label>
+            <input type="range" id="p5-intensity" min="0" max="5" step="0.1" value="2.0">
+        </div>
+
+        <h3>Público (Crowd)</h3>
+
+        <div class="checkbox-group">
+            <input type="checkbox" id="crowd-enabled" checked>
+            <label>Mostrar Público</label>
+        </div>
+
+        <div class="checkbox-group">
+            <input type="checkbox" id="crowd-pit-enabled" checked>
+            <label>Público na Pista</label>
+        </div>
+
+        <div class="checkbox-group">
+            <input type="checkbox" id="crowd-backstage-enabled" checked>
+            <label>Público no Backstage</label>
+        </div>
+
+        <div class="control-group">
+            <label>Densidade <span class="value-display" id="crowd-density-val">2.5</span> p/m²</label>
+            <input type="range" id="crowd-density" min="1.0" max="4.0" step="0.1" value="2.5">
+        </div>
+
+        <div class="control-group color-picker-wrapper">
+            <label>Cor do Público</label>
+            <input type="color" id="crowd-color" value="#ff6600">
+        </div>
+
+        <div class="control-group">
+            <label>Velocidade Dança <span class="value-display" id="crowd-speed-val">1.0</span></label>
+            <input type="range" id="crowd-speed" min="0.3" max="2.0" step="0.1" value="1.0">
         </div>
 
         <div class="checkbox-group">

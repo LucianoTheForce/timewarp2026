@@ -45,6 +45,18 @@ export class StageBuilder {
         this.lasersGroup.name = 'lasers';
         this.scene.add(this.lasersGroup);
 
+        this.p5LightsGroup = new THREE.Group();
+        this.p5LightsGroup.name = 'p5Lights';
+        this.scene.add(this.p5LightsGroup);
+
+        this.crowdGroup = new THREE.Group();
+        this.crowdGroup.name = 'crowd';
+        this.scene.add(this.crowdGroup);
+
+        this.crowdInstances = null;
+        this.crowdCount = 0;
+        this.crowdData = []; // Array para armazenar dados de animação
+
         this.floor = null;
         this.concreteTexture = null;
         this.concreteMaterial = null;
@@ -100,6 +112,21 @@ export class StageBuilder {
             stageBandDepth: 0.12,
             laserHeight: 20,
             laserColor: 0x00ff00,
+            laserAnimation: 'static', // static, sweep, rotate, pulse, chase, random
+            laserSpeed: 1.0,
+            stageLasersEnabled: true, // lasers no palco
+            p5LightsEnabled: true, // luzes P5 nos cubos
+            p5LightColor: 0xffffff,
+            p5LightIntensity: 2.0,
+
+            // Crowd (público)
+            crowdEnabled: true,
+            crowdDensity: 2.5, // pessoas por m² (2.5 = show lotado, 1.5 = confortável)
+            crowdPitEnabled: true, // público na pista
+            crowdBackstageEnabled: true, // público no backstage
+            crowdColor: 0xff6600, // cor base do público
+            crowdAnimationSpeed: 1.0,
+
             useConcreteFloor: true,
 
             // Pipe params (2m standard)
@@ -242,9 +269,9 @@ export class StageBuilder {
         });
 
         this.railingMaterial = new THREE.MeshStandardMaterial({
-            color: 0x7fb7ff,
-            metalness: 0.3,
-            roughness: 0.6
+            color: 0x606060,  // Cinza metálico de grade de evento
+            metalness: 0.7,
+            roughness: 0.4
         });
 
         this.stairsMaterial = new THREE.MeshStandardMaterial({
@@ -300,8 +327,8 @@ export class StageBuilder {
         this.floor.receiveShadow = true;
         this.scene.add(this.floor);
 
-        // Grid helper (1m x 1m)
-        this.gridHelper = new THREE.GridHelper(200, 200, 0x888888, 0x666666);
+        // Grid helper (1m x 1m) - discreto, próximo da cor do piso
+        this.gridHelper = new THREE.GridHelper(200, 200, 0x404040, 0x3a3a3a);
         this.gridHelper.position.set(0, 0.01, 0);
         this.scene.add(this.gridHelper);
 
@@ -318,34 +345,12 @@ export class StageBuilder {
         this.params.useConcreteFloor = enabled;
         if (!this.floor) return;
 
-        if (!this.concreteTexture) {
-            const size = 512;
-            const canvas = document.createElement('canvas');
-            canvas.width = size;
-            canvas.height = size;
-            const ctx = canvas.getContext('2d');
-            ctx.fillStyle = '#6b6b6b';
-            ctx.fillRect(0, 0, size, size);
-            // noise
-            const imgData = ctx.getImageData(0, 0, size, size);
-            for (let i = 0; i < imgData.data.length; i += 4) {
-                const n = 110 + Math.random() * 60;
-                imgData.data[i] = imgData.data[i + 1] = imgData.data[i + 2] = n;
-                imgData.data[i + 3] = 255;
-            }
-            ctx.putImageData(imgData, 0, 0);
-            this.concreteTexture = new THREE.CanvasTexture(canvas);
-            this.concreteTexture.wrapS = THREE.RepeatWrapping;
-            this.concreteTexture.wrapT = THREE.RepeatWrapping;
-            this.concreteTexture.repeat.set(20, 20);
-        }
-
         if (!this.concreteMaterial) {
+            // Cinza chumbo simples
             this.concreteMaterial = new THREE.MeshStandardMaterial({
-                map: this.concreteTexture,
-                color: 0xffffff,
-                roughness: 0.95,
-                metalness: 0.05
+                color: 0x3a3a3a,
+                roughness: 0.8,
+                metalness: 0.1
             });
         }
 
@@ -396,6 +401,31 @@ export class StageBuilder {
             this.lasersGroup.children.forEach((beam) => {
                 if (beam.material) beam.material.color = new THREE.Color(value);
             });
+        } else if (key === 'p5LightColor') {
+            const p5Color = new THREE.Color(value);
+            this.p5LightsGroup.children.forEach((light) => {
+                if (light.userData.type === 'p5Light' && light.material) {
+                    light.material.color.copy(p5Color);
+                    light.material.emissive.copy(p5Color);
+                } else if (light.userData.type === 'p5Cone' && light.material) {
+                    light.material.color.copy(p5Color);
+                }
+            });
+        } else if (key === 'p5LightIntensity') {
+            this.p5LightsGroup.children.forEach((light) => {
+                if (light.userData.type === 'p5Light' && light.material) {
+                    light.material.emissiveIntensity = value;
+                }
+            });
+        } else if (key === 'laserAnimation' || key === 'laserSpeed') {
+            // Não precisa rebuild, apenas atualiza na animação
+        } else if (key === 'crowdColor') {
+            // Atualizar cor do público dinamicamente
+            if (this.crowdInstances && this.crowdInstances.material) {
+                this.crowdInstances.material.color.setHex(value);
+            }
+        } else if (key === 'crowdAnimationSpeed') {
+            // Não precisa rebuild, apenas atualiza na animação
         } else if (key === 'ledEffect' && value === 'video') {
             // Switch to video mode
         } else if (key === 'showDimensions') {
@@ -509,6 +539,18 @@ export class StageBuilder {
 
         if (this.params.ledExternalEnabled) {
             this.buildLedExternalPanels();
+        }
+
+        if (this.params.lasersEnabled) {
+            this.buildLasers();
+        }
+
+        if (this.params.p5LightsEnabled) {
+            this.buildP5Lights();
+        }
+
+        if (this.params.crowdEnabled) {
+            this.buildCrowd();
         }
     }
 
@@ -626,10 +668,11 @@ export class StageBuilder {
         const zDj = -(backstageDepth / 2 - djDepth / 2);
 
         // Palco unificado (verde)
+        const deckColor = 0x555b65; // chumbo claro para diferenciar do restante
         const blocks = [
-            { w: backstageLeftWidth, d: backstageDepth, x: xLeft, z: zBack, color: 0x7fcf90 },
-            { w: backstageCenterWidth, d: backstageDepth, x: xCenter, z: zBack, color: 0x7fcf90 },
-            { w: backstageRightWidth, d: backstageDepth, x: xRight, z: zBack, color: 0x7fcf90 }
+            { w: backstageLeftWidth, d: backstageDepth, x: xLeft, z: zBack, color: deckColor },
+            { w: backstageCenterWidth, d: backstageDepth, x: xCenter, z: zBack, color: deckColor },
+            { w: backstageRightWidth, d: backstageDepth, x: xRight, z: zBack, color: deckColor }
         ];
 
         const deckMat = (hex) =>
@@ -809,11 +852,94 @@ export class StageBuilder {
 
         const addSegment = (x, z, w, d, rotY = 0) => {
             if (w <= 0 || d <= 0) return;
-            const geom = new THREE.BoxGeometry(w, railingHeight, d);
-            const mesh = new THREE.Mesh(geom, this.railingMaterial.clone());
-            mesh.position.set(x, y, z);
-            mesh.rotation.y = rotY;
-            this.railingsGroup.add(mesh);
+
+            // Grade de evento profissional
+            const group = new THREE.Group();
+            const isHorizontal = w > d;
+            const length = isHorizontal ? w : d;
+            const sectionLength = 2.0; // seções de 2 metros
+            const numSections = Math.ceil(length / sectionLength);
+
+            // Para cada seção de 2 metros
+            for (let s = 0; s < numSections; s++) {
+                const sectionGroup = new THREE.Group();
+                const sectionStart = -length / 2 + (s * sectionLength);
+                const actualSectionLength = Math.min(sectionLength, length / 2 - sectionStart);
+
+                if (actualSectionLength <= 0) continue;
+
+                const sectionCenter = sectionStart + actualSectionLength / 2;
+
+                // Montante de sustentação (mais grosso) nas extremidades da seção
+                const postRadius = 0.025;
+                const postHeight = railingHeight + 0.15; // um pouco mais alto
+                const postGeom = new THREE.CylinderGeometry(postRadius, postRadius, postHeight, 8);
+
+                // Montante no início da seção
+                const post = new THREE.Mesh(postGeom, this.railingMaterial.clone());
+                if (isHorizontal) {
+                    post.position.set(sectionStart, 0, 0);
+                } else {
+                    post.position.set(0, 0, sectionStart);
+                }
+                sectionGroup.add(post);
+
+                // Pé de sustentação (mais forte, indo até o chão)
+                const footDepth = 0.3;
+                const footGeom = new THREE.BoxGeometry(0.08, 0.05, footDepth);
+                const foot = new THREE.Mesh(footGeom, this.railingMaterial.clone());
+                if (isHorizontal) {
+                    foot.position.set(sectionStart, -railingHeight / 2 - 0.05, footDepth / 4);
+                } else {
+                    foot.position.set(footDepth / 4, -railingHeight / 2 - 0.05, sectionStart);
+                    foot.rotation.y = Math.PI / 2;
+                }
+                sectionGroup.add(foot);
+
+                // Corrimão superior arredondado
+                const topRailRadius = 0.02;
+                const topRailLength = actualSectionLength;
+                const topRailGeom = new THREE.CylinderGeometry(topRailRadius, topRailRadius, topRailLength, 12);
+                const topRail = new THREE.Mesh(topRailGeom, this.railingMaterial.clone());
+                topRail.position.y = railingHeight / 2;
+                if (isHorizontal) {
+                    topRail.rotation.z = Math.PI / 2;
+                    topRail.position.x = sectionCenter;
+                } else {
+                    topRail.rotation.x = Math.PI / 2;
+                    topRail.position.z = sectionCenter;
+                }
+                sectionGroup.add(topRail);
+
+                // Corrimão inferior
+                const bottomRail = topRail.clone();
+                bottomRail.position.y = -railingHeight / 2 + 0.1;
+                sectionGroup.add(bottomRail);
+
+                // Barras verticais finas dentro da seção
+                const barThickness = 0.012;
+                const barSpacing = 0.12;
+                const numBars = Math.floor(actualSectionLength / barSpacing);
+
+                for (let i = 1; i < numBars; i++) {
+                    const barPos = sectionStart + (i * barSpacing);
+                    const barGeom = new THREE.CylinderGeometry(barThickness, barThickness, railingHeight - 0.2, 6);
+                    const bar = new THREE.Mesh(barGeom, this.railingMaterial.clone());
+
+                    if (isHorizontal) {
+                        bar.position.set(barPos, 0, 0);
+                    } else {
+                        bar.position.set(0, 0, barPos);
+                    }
+                    sectionGroup.add(bar);
+                }
+
+                group.add(sectionGroup);
+            }
+
+            group.position.set(x, y, z);
+            group.rotation.y = rotY;
+            this.railingsGroup.add(group);
         };
 
         // Frente e traseira contínuas
@@ -823,8 +949,7 @@ export class StageBuilder {
         // Laterais com aberturas perto dos cantos (escadas na lateral)
         const margin = 0.05;
         const gapD = stairsWidth + 0.2;
-        const extraOffset = 0.5; // recuar um pouco a escada para dentro do palco
-        const gapCenterZ = deckBox.min.z + stairsWidth / 2 + margin + extraOffset; // canto frontal
+        const gapCenterZ = deckBox.min.z + stairsWidth / 2 + margin; // canto frontal encostado na borda
 
         const addSideWithGap = (xPos) => {
             const gapMin = gapCenterZ - gapD / 2;
@@ -856,9 +981,10 @@ export class StageBuilder {
         const margin = 0.05;
 
         // Escadas na lateral frontal esquerda/direita, degraus entrando no palco (eixo +X para esquerda, -X para direita)
-        const zPos = deckBox.min.z + stairsWidth / 2 + margin + 0.5; // recuado para dentro do palco
-        const leftStartX = deckBox.min.x - stepD / 2 - margin;
-        const rightStartX = deckBox.max.x + stepD / 2 + margin;
+        const zPos = deckBox.min.z + stairsWidth / 2 + margin; // encostado na borda frontal do palco
+        const extraSideOffset = 0.5;
+        const leftStartX = deckBox.min.x - stepD / 2 - margin - extraSideOffset;
+        const rightStartX = deckBox.max.x + stepD / 2 + margin + extraSideOffset;
 
         const makeStairs = (xStart, dir) => {
             for (let i = 0; i < steps; i++) {
@@ -922,21 +1048,30 @@ export class StageBuilder {
         const baseY = this.params.deckHeight + bandH / 2;
 
         // Frente do andaime (face voltada para o palco)
-        const zFront = isFinite(scaffoldBox.min.z) ? scaffoldBox.min.z - bandDepth / 2 - 0.05 : deckBox.min.z - bandDepth / 2;
+        const zFront = isFinite(scaffoldBox.max.z) ? scaffoldBox.max.z + bandDepth / 2 + 0.05 : deckBox.max.z + bandDepth / 2;
         // Traseira do andaime
-        const zRear = isFinite(scaffoldBox.max.z) ? scaffoldBox.max.z + bandDepth / 2 + 0.05 : deckBox.max.z + bandDepth / 2;
+        const zRear = isFinite(scaffoldBox.min.z) ? scaffoldBox.min.z - bandDepth / 2 - 0.05 : deckBox.min.z - bandDepth / 2;
 
         const addBands = (isFront) => {
             const matBase = isFront ? this.stageFrontLedMaterial : this.stageRearLedMaterial;
             const zPos = isFront ? zFront : zRear;
-            for (let i = 0; i < bandCount; i++) {
+
+            // Distribuir em 3 níveis: baixo, meio, alto
+            const scaffoldHeight = isFinite(scaffoldBox.max.y) ? scaffoldBox.max.y - this.params.deckHeight : 12;
+            const levels = [
+                this.params.deckHeight + bandH / 2,  // baixo
+                this.params.deckHeight + scaffoldHeight * 0.5,  // meio
+                this.params.deckHeight + scaffoldHeight * 0.9   // alto
+            ];
+
+            levels.forEach((yPos, i) => {
                 const geom = new THREE.BoxGeometry(width, bandH, bandDepth);
                 const mesh = new THREE.Mesh(geom, matBase.clone());
-                const yCenter = baseY + i * (bandH + bandGap);
-                mesh.position.set(centerX, yCenter, zPos);
+                mesh.position.set(centerX, yPos, zPos);
                 mesh.userData.type = 'stageBand';
+                mesh.userData.level = i; // 0=baixo, 1=meio, 2=alto
                 this.stageBandsGroup.add(mesh);
-            }
+            });
         };
 
         if (this.params.stageFrontBandsEnabled) addBands(true);
@@ -946,7 +1081,6 @@ export class StageBuilder {
     buildLasers() {
         const height = this.params.laserHeight || this.params.towerLevels * this.params.pipeLength;
         const beamRadius = 0.05;
-
         const sphereRadius = 0.08;
 
         const makeRand = (seed) => {
@@ -957,6 +1091,7 @@ export class StageBuilder {
             };
         };
 
+        // Lasers nas torres
         this.towersGroup.children.forEach((tower, idx) => {
             const towerIndex = tower.userData.towerIndex ?? idx;
             // Uma torre sim, outra não
@@ -974,6 +1109,8 @@ export class StageBuilder {
             const vert = new THREE.Mesh(vertGeom, colorMat.clone());
             vert.position.set(center.x, box.max.y + height / 2, center.z);
             vert.userData.type = 'laser';
+            vert.userData.towerIndex = towerIndex;
+            vert.userData.laserType = 'vertical';
             vert.renderOrder = 2;
             this.lasersGroup.add(vert);
 
@@ -984,6 +1121,8 @@ export class StageBuilder {
             horiz.rotation.z = Math.PI / 2;
             horiz.position.set(center.x, box.max.y + height * 0.3, center.z);
             horiz.userData.type = 'laser';
+            horiz.userData.towerIndex = towerIndex;
+            horiz.userData.laserType = 'horizontal';
             horiz.renderOrder = 2;
             this.lasersGroup.add(horiz);
 
@@ -997,10 +1136,51 @@ export class StageBuilder {
                 const sphere = new THREE.Mesh(sphereGeom, colorMat.clone());
                 sphere.position.set(px, py, pz);
                 sphere.userData.type = 'laser';
+                sphere.userData.towerIndex = towerIndex;
+                sphere.userData.laserType = 'point';
                 sphere.renderOrder = 2;
                 this.lasersGroup.add(sphere);
             }
         });
+
+        // Lasers no palco (andaimes traseiros)
+        if (this.params.stageLasersEnabled) {
+            const scaffoldBox = new THREE.Box3().setFromObject(this.backScaffoldGroup);
+            if (isFinite(scaffoldBox.min.x) && isFinite(scaffoldBox.max.x)) {
+                const scaffoldWidth = scaffoldBox.max.x - scaffoldBox.min.x;
+                const scaffoldHeight = scaffoldBox.max.y - this.params.deckHeight;
+                const laserCount = 6; // 6 lasers ao longo do palco
+
+                for (let i = 0; i < laserCount; i++) {
+                    const colorMat = this.laserMaterial.clone();
+                    const xPos = scaffoldBox.min.x + (i / (laserCount - 1)) * scaffoldWidth;
+                    const yBase = this.params.deckHeight + scaffoldHeight * 0.8;
+                    const zPos = scaffoldBox.max.z + 0.3;
+
+                    // Laser vertical
+                    const laserHeight = 8;
+                    const vertGeom = new THREE.CylinderGeometry(beamRadius, beamRadius, laserHeight, 8, 1, true);
+                    const vert = new THREE.Mesh(vertGeom, colorMat.clone());
+                    vert.position.set(xPos, yBase + laserHeight / 2, zPos);
+                    vert.userData.type = 'laser';
+                    vert.userData.stageIndex = i;
+                    vert.userData.laserType = 'stage-vertical';
+                    vert.renderOrder = 2;
+                    this.lasersGroup.add(vert);
+
+                    // Laser diagonal (apontando para frente)
+                    const diagGeom = new THREE.CylinderGeometry(beamRadius, beamRadius, 12, 8, 1, true);
+                    const diag = new THREE.Mesh(diagGeom, colorMat.clone());
+                    diag.position.set(xPos, yBase, zPos - 6);
+                    diag.rotation.x = Math.PI / 4; // 45 graus
+                    diag.userData.type = 'laser';
+                    diag.userData.stageIndex = i;
+                    diag.userData.laserType = 'stage-diagonal';
+                    diag.renderOrder = 2;
+                    this.lasersGroup.add(diag);
+                }
+            }
+        }
     }
     isRearFace(towerPosition, faceIndex) {
         // Face indices: 0=+X, 1=+Z, 2=-X, 3=-Z (com facingAngle=0)
@@ -1479,6 +1659,10 @@ export class StageBuilder {
             const baseColor = isExternal ? extColor : boxColor;
             const baseIntensity = isExternal ? extIntensity : boxIntensity;
 
+            const towerIndex = panel.userData.towerIndex || 0;
+            const panelIndex = panel.userData.panelIndex || 0;
+            const faceIndex = panel.userData.face || 0;
+
             switch (this.params.ledEffect) {
                 case 'rainbow':
                     const hue = (this.time * 0.2 + index * 0.05) % 1;
@@ -1498,10 +1682,546 @@ export class StageBuilder {
                     panel.material.emissiveIntensity = baseIntensity * wave;
                     break;
 
+                case 'strobe':
+                    const strobeFreq = Math.floor(this.time * 8) % 2;
+                    panel.material.emissive.copy(baseColor);
+                    panel.material.emissiveIntensity = strobeFreq === 0 ? baseIntensity : 0;
+                    break;
+
+                case 'chase':
+                    const chasePos = Math.floor(this.time * 3) % this.allLedPanels.length;
+                    const isActive = Math.abs(index - chasePos) < 3;
+                    panel.material.emissive.copy(baseColor);
+                    panel.material.emissiveIntensity = isActive ? baseIntensity : baseIntensity * 0.1;
+                    break;
+
+                case 'tower-wave':
+                    const towerWave = (Math.sin(this.time * 2 + towerIndex * 0.8) + 1) / 2;
+                    panel.material.emissive.copy(baseColor);
+                    panel.material.emissiveIntensity = baseIntensity * towerWave;
+                    break;
+
+                case 'vertical-scan':
+                    const scanPos = (Math.sin(this.time * 1.5) + 1) / 2;
+                    const panelHeight = panel.position.y;
+                    const maxHeight = 20;
+                    const targetHeight = scanPos * maxHeight;
+                    const dist = Math.abs(panelHeight - targetHeight);
+                    const scanIntensity = Math.max(0, 1 - dist / 3);
+                    panel.material.emissive.copy(baseColor);
+                    panel.material.emissiveIntensity = baseIntensity * scanIntensity;
+                    break;
+
+                case 'sparkle':
+                    const sparkle = Math.random() > 0.95 ? 1 : 0.2;
+                    panel.material.emissive.copy(baseColor);
+                    panel.material.emissiveIntensity = baseIntensity * sparkle;
+                    break;
+
+                case 'rainbow-wave':
+                    const rainbowHue = (this.time * 0.3 + index * 0.1) % 1;
+                    const rainbowWave = (Math.sin(this.time * 2 + index * 0.2) + 1) / 2;
+                    panel.material.emissive.setHSL(rainbowHue, 1, 0.5);
+                    panel.material.emissiveIntensity = baseIntensity * (0.3 + rainbowWave * 0.7);
+                    break;
+
+                case 'fire':
+                    const fireFlicker = Math.random() * 0.3 + 0.7;
+                    const fireHue = 0.05 + Math.random() * 0.05;
+                    panel.material.emissive.setHSL(fireHue, 1, 0.5);
+                    panel.material.emissiveIntensity = baseIntensity * fireFlicker;
+                    break;
+
+                case 'alternate':
+                    const altPhase = Math.floor(this.time * 2) % 2;
+                    const isOddTower = towerIndex % 2;
+                    panel.material.emissive.copy(baseColor);
+                    panel.material.emissiveIntensity = (isOddTower === altPhase) ? baseIntensity : baseIntensity * 0.1;
+                    break;
+
+                case 'wipe-horizontal':
+                    // Cortina horizontal da esquerda para direita
+                    const wipeX = (Math.sin(this.time * 1.5) + 1) / 2;
+                    const panelX = (panel.position.x + 50) / 100; // normalizar -50 a 50 para 0 a 1
+                    const wipeDistX = Math.abs(panelX - wipeX);
+                    panel.material.emissive.copy(baseColor);
+                    panel.material.emissiveIntensity = wipeDistX < 0.15 ? baseIntensity : baseIntensity * 0.1;
+                    break;
+
+                case 'wipe-vertical':
+                    // Cortina vertical de baixo para cima
+                    const wipeY = (Math.sin(this.time * 1.5) + 1) / 2;
+                    const panelY = panel.position.y / 20; // normalizar 0 a 20 para 0 a 1
+                    const wipeDistY = Math.abs(panelY - wipeY);
+                    panel.material.emissive.copy(baseColor);
+                    panel.material.emissiveIntensity = wipeDistY < 0.2 ? baseIntensity : baseIntensity * 0.1;
+                    break;
+
+                case 'center-out':
+                    // Do centro para fora
+                    const centerDist = Math.sqrt(
+                        Math.pow(panel.position.x, 2) +
+                        Math.pow(panel.position.z, 2)
+                    ) / 50;
+                    const expandRadius = (Math.sin(this.time * 2) + 1) / 2;
+                    const centerIntensity = Math.abs(centerDist - expandRadius) < 0.2 ? 1 : 0.1;
+                    panel.material.emissive.copy(baseColor);
+                    panel.material.emissiveIntensity = baseIntensity * centerIntensity;
+                    break;
+
+                case 'edge-in':
+                    // Das bordas para dentro (inverso do center-out)
+                    const edgeDist = Math.sqrt(
+                        Math.pow(panel.position.x, 2) +
+                        Math.pow(panel.position.z, 2)
+                    ) / 50;
+                    const contractRadius = 1 - ((Math.sin(this.time * 2) + 1) / 2);
+                    const edgeIntensity = Math.abs(edgeDist - contractRadius) < 0.2 ? 1 : 0.1;
+                    panel.material.emissive.copy(baseColor);
+                    panel.material.emissiveIntensity = baseIntensity * edgeIntensity;
+                    break;
+
+                case 'diagonal':
+                    // Diagonal sweep
+                    const diagPos = (Math.sin(this.time * 1.2) + 1) / 2;
+                    const normalizedDiag = (panel.position.x + panel.position.z + 70) / 140;
+                    const diagDist = Math.abs(normalizedDiag - diagPos);
+                    panel.material.emissive.copy(baseColor);
+                    panel.material.emissiveIntensity = diagDist < 0.15 ? baseIntensity : baseIntensity * 0.1;
+                    break;
+
+                case 'kaleidoscope':
+                    // Efeito caleidoscópio com 4 quadrantes
+                    const quadX = panel.position.x > 0 ? 1 : 0;
+                    const quadZ = panel.position.z > 0 ? 1 : 0;
+                    const quadrant = quadX * 2 + quadZ;
+                    const quadPhase = Math.floor(this.time * 3) % 4;
+                    const kaleido = quadrant === quadPhase ? 1 : 0.15;
+                    const kaleidoHue = (quadrant * 0.25 + this.time * 0.1) % 1;
+                    panel.material.emissive.setHSL(kaleidoHue, 0.9, 0.5);
+                    panel.material.emissiveIntensity = baseIntensity * kaleido;
+                    break;
+
+                case 'matrix-rain':
+                    // Efeito Matrix - chuva verde
+                    const rainSpeed = this.time * 5;
+                    const columnPhase = (panel.position.x * 0.5 + panel.position.z * 0.3) % 6.28;
+                    const rainY = ((rainSpeed + columnPhase) % 20);
+                    const rainDist = Math.abs(panel.position.y - rainY);
+                    const matrixIntensity = Math.max(0, 1 - rainDist / 2);
+                    panel.material.emissive.setRGB(0, matrixIntensity, 0);
+                    panel.material.emissiveIntensity = baseIntensity * matrixIntensity;
+                    break;
+
+                case 'rings':
+                    // Anéis concêntricos pulsantes
+                    const ringDist = Math.sqrt(
+                        Math.pow(panel.position.x, 2) +
+                        Math.pow(panel.position.z, 2)
+                    );
+                    const ringPhase = (this.time * 3 + ringDist * 0.3) % 6.28;
+                    const ringIntensity = (Math.sin(ringPhase) + 1) / 2;
+                    panel.material.emissive.copy(baseColor);
+                    panel.material.emissiveIntensity = baseIntensity * (0.2 + ringIntensity * 0.8);
+                    break;
+
+                case 'spin':
+                    // Rotação em espiral
+                    const angle = Math.atan2(panel.position.z, panel.position.x);
+                    const spinPhase = (angle + this.time * 2) % (Math.PI * 2);
+                    const spinSeg = Math.floor(spinPhase / (Math.PI / 4)) % 2;
+                    panel.material.emissive.copy(baseColor);
+                    panel.material.emissiveIntensity = spinSeg === 0 ? baseIntensity : baseIntensity * 0.2;
+                    break;
+
+                case 'checkerboard':
+                    // Tabuleiro de xadrez alternado
+                    const checkX = Math.floor((panel.position.x + 50) / 5) % 2;
+                    const checkZ = Math.floor((panel.position.z + 50) / 5) % 2;
+                    const checkPhase = Math.floor(this.time * 2) % 2;
+                    const isCheckOn = ((checkX + checkZ) % 2) === checkPhase;
+                    panel.material.emissive.copy(baseColor);
+                    panel.material.emissiveIntensity = isCheckOn ? baseIntensity : baseIntensity * 0.1;
+                    break;
+
+                case 'build-up':
+                    // Build up de baixo para cima (típico de drops em EDM)
+                    const buildProgress = (Math.sin(this.time * 0.5) + 1) / 2;
+                    const buildThreshold = panel.position.y / 20;
+                    const isBuildOn = buildThreshold < buildProgress;
+                    const buildHue = buildProgress * 0.7; // de vermelho a roxo
+                    panel.material.emissive.setHSL(buildHue, 1, 0.5);
+                    panel.material.emissiveIntensity = isBuildOn ? baseIntensity : 0;
+                    break;
+
                 case 'solid':
                 default:
                     panel.material.emissive.copy(baseColor);
                     panel.material.emissiveIntensity = baseIntensity;
+                    break;
+            }
+        });
+
+        // Animações de lasers
+        this.updateLaserAnimations();
+
+        // Animação do público
+        this.updateCrowdAnimation();
+    }
+
+    buildP5Lights() {
+        // Limpar luzes P5 existentes
+        while (this.p5LightsGroup.children.length > 0) {
+            const child = this.p5LightsGroup.children[0];
+            if (child.geometry) child.geometry.dispose();
+            if (child.material) child.material.dispose();
+            this.p5LightsGroup.remove(child);
+        }
+
+        if (!this.params.p5LightsEnabled) return;
+
+        const p5Size = 0.15; // tamanho da luz P5
+        const p5Color = new THREE.Color(this.params.p5LightColor);
+
+        // Material para luzes P5
+        const p5Material = new THREE.MeshStandardMaterial({
+            color: p5Color,
+            emissive: p5Color,
+            emissiveIntensity: this.params.p5LightIntensity,
+            metalness: 0.3,
+            roughness: 0.4
+        });
+
+        // Adicionar P5 nas torres
+        this.towersGroup.children.forEach((tower, towerIdx) => {
+            const box = new THREE.Box3().setFromObject(tower);
+            if (!isFinite(box.min.y)) return;
+
+            const towerWidth = box.max.x - box.min.x;
+            const towerDepth = box.max.z - box.min.z;
+            const towerHeight = box.max.y - box.min.y;
+            const centerX = (box.min.x + box.max.x) / 2;
+            const centerZ = (box.min.z + box.min.z) / 2;
+
+            // Calcular número de níveis (cada 2m)
+            const numLevels = Math.floor(towerHeight / 2.0);
+
+            for (let level = 0; level < numLevels; level++) {
+                const yPos = box.min.y + (level + 0.5) * 2.0;
+
+                // P5 no centro de cada cubo, apontando para frente (-Z)
+                const p5Geom = new THREE.BoxGeometry(p5Size, p5Size, p5Size * 1.5);
+                const p5Light = new THREE.Mesh(p5Geom, p5Material.clone());
+                p5Light.position.set(centerX, yPos, box.min.z - 0.1);
+                p5Light.userData.type = 'p5Light';
+                p5Light.userData.towerIndex = towerIdx;
+                p5Light.userData.level = level;
+                this.p5LightsGroup.add(p5Light);
+
+                // Adicionar um cone de luz (visual)
+                const coneGeom = new THREE.ConeGeometry(0.3, 1.5, 8, 1, true);
+                const coneMat = new THREE.MeshBasicMaterial({
+                    color: p5Color,
+                    transparent: true,
+                    opacity: 0.15,
+                    side: THREE.DoubleSide
+                });
+                const cone = new THREE.Mesh(coneGeom, coneMat);
+                cone.rotation.x = Math.PI / 2;
+                cone.position.set(centerX, yPos, box.min.z - 1.2);
+                cone.userData.type = 'p5Cone';
+                this.p5LightsGroup.add(cone);
+            }
+        });
+
+        // Adicionar P5 no palco (andaime traseiro)
+        const scaffoldBox = new THREE.Box3().setFromObject(this.backScaffoldGroup);
+        if (isFinite(scaffoldBox.min.x) && isFinite(scaffoldBox.max.x)) {
+            const scaffoldWidth = scaffoldBox.max.x - scaffoldBox.min.x;
+            const scaffoldHeight = scaffoldBox.max.y - this.params.deckHeight;
+            const numP5 = 8; // 8 luzes ao longo do palco
+            const numLevels = 3; // 3 níveis de altura
+
+            for (let i = 0; i < numP5; i++) {
+                const xPos = scaffoldBox.min.x + (i / (numP5 - 1)) * scaffoldWidth;
+
+                for (let level = 0; level < numLevels; level++) {
+                    const yPos = this.params.deckHeight + (level / (numLevels - 1)) * scaffoldHeight * 0.8;
+
+                    // P5 apontando para frente (-Z)
+                    const p5Geom = new THREE.BoxGeometry(p5Size, p5Size, p5Size * 1.5);
+                    const p5Light = new THREE.Mesh(p5Geom, p5Material.clone());
+                    p5Light.position.set(xPos, yPos, scaffoldBox.min.z - 0.1);
+                    p5Light.userData.type = 'p5Light';
+                    p5Light.userData.stageIndex = i;
+                    p5Light.userData.level = level;
+                    this.p5LightsGroup.add(p5Light);
+
+                    // Cone de luz
+                    const coneGeom = new THREE.ConeGeometry(0.4, 2.0, 8, 1, true);
+                    const coneMat = new THREE.MeshBasicMaterial({
+                        color: p5Color,
+                        transparent: true,
+                        opacity: 0.15,
+                        side: THREE.DoubleSide
+                    });
+                    const cone = new THREE.Mesh(coneGeom, coneMat);
+                    cone.rotation.x = Math.PI / 2;
+                    cone.position.set(xPos, yPos, scaffoldBox.min.z - 1.5);
+                    cone.userData.type = 'p5Cone';
+                    this.p5LightsGroup.add(cone);
+                }
+            }
+        }
+    }
+
+    buildCrowd() {
+        // Limpar crowd existente
+        if (this.crowdInstances) {
+            this.crowdInstances.geometry.dispose();
+            this.crowdInstances.material.dispose();
+            this.crowdGroup.remove(this.crowdInstances);
+            this.crowdInstances = null;
+        }
+        this.crowdData = [];
+        this.crowdCount = 0;
+
+        if (!this.params.crowdEnabled) return;
+
+        const deckBox = new THREE.Box3().setFromObject(this.stageDeck);
+        if (!isFinite(deckBox.min.x)) return;
+
+        const density = this.params.crowdDensity; // pessoas por m²
+        const personSize = 0.4; // largura da pessoa
+        const peoplePositions = [];
+
+        // Calcular área da pista (frente do palco)
+        let pitArea = 0;
+        let pitCapacity = 0;
+        if (this.params.crowdPitEnabled) {
+            // Pista: área em frente ao palco
+            const pitWidth = deckBox.max.x - deckBox.min.x;
+            const pitDepth = Math.abs(deckBox.min.z) - 2; // até 2m antes do palco
+            pitArea = pitWidth * pitDepth;
+            pitCapacity = Math.floor(pitArea * density);
+
+            // Adicionar pessoas na pista
+            const gridSpacing = Math.sqrt(1 / density); // espaçamento baseado na densidade
+            const numRows = Math.floor(pitDepth / gridSpacing);
+            const numCols = Math.floor(pitWidth / gridSpacing);
+
+            for (let row = 0; row < numRows; row++) {
+                for (let col = 0; col < numCols; col++) {
+                    // Adicionar variação aleatória para não parecer grid
+                    const randomOffset = (Math.random() - 0.5) * gridSpacing * 0.5;
+                    const x = deckBox.min.x + (col + 0.5) * gridSpacing + randomOffset;
+                    const z = deckBox.min.z - 2 - (row + 0.5) * gridSpacing + randomOffset * 0.5;
+                    const y = 0.9; // altura média de pessoa (1.8m / 2)
+
+                    peoplePositions.push({
+                        x, y, z,
+                        area: 'pit',
+                        randomPhase: Math.random() * Math.PI * 2,
+                        randomSpeed: 0.8 + Math.random() * 0.4
+                    });
+                }
+            }
+        }
+
+        // Calcular área do backstage
+        let backstageArea = 0;
+        let backstageCapacity = 0;
+        if (this.params.crowdBackstageEnabled) {
+            // Backstage: área atrás do palco
+            const backstageWidth = this.params.backstageLeftWidth + this.params.backstageCenterWidth + this.params.backstageRightWidth;
+            const backstageDepth = this.params.backstageDepth;
+            backstageArea = backstageWidth * backstageDepth;
+            backstageCapacity = Math.floor(backstageArea * density);
+
+            const gridSpacing = Math.sqrt(1 / density);
+            const numRows = Math.floor(backstageDepth / gridSpacing);
+            const numCols = Math.floor(backstageWidth / gridSpacing);
+
+            const backstageStartX = deckBox.min.x;
+
+            for (let row = 0; row < numRows; row++) {
+                for (let col = 0; col < numCols; col++) {
+                    const randomOffset = (Math.random() - 0.5) * gridSpacing * 0.5;
+                    const x = backstageStartX + (col + 0.5) * gridSpacing + randomOffset;
+                    const z = deckBox.max.z + 0.5 + (row + 0.5) * gridSpacing + randomOffset * 0.5;
+                    const y = this.params.deckHeight + 0.9; // altura do deck + metade da pessoa
+
+                    peoplePositions.push({
+                        x, y, z,
+                        area: 'backstage',
+                        randomPhase: Math.random() * Math.PI * 2,
+                        randomSpeed: 0.8 + Math.random() * 0.4
+                    });
+                }
+            }
+        }
+
+        this.crowdCount = peoplePositions.length;
+        this.crowdData = peoplePositions;
+
+        // Log de capacidade
+        console.log(`=== CAPACIDADE DO PÚBLICO ===`);
+        console.log(`Pista: ${pitCapacity} pessoas (${pitArea.toFixed(1)}m² × ${density} p/m²)`);
+        console.log(`Backstage: ${backstageCapacity} pessoas (${backstageArea.toFixed(1)}m² × ${density} p/m²)`);
+        console.log(`TOTAL: ${this.crowdCount} pessoas`);
+
+        if (this.crowdCount === 0) return;
+
+        // Criar geometria de pessoa (cilindro simples representando corpo)
+        const personGeometry = new THREE.CylinderGeometry(0.2, 0.2, 1.8, 6);
+        const personMaterial = new THREE.MeshStandardMaterial({
+            color: this.params.crowdColor,
+            roughness: 0.8,
+            metalness: 0.1
+        });
+
+        // Criar InstancedMesh para performance
+        this.crowdInstances = new THREE.InstancedMesh(
+            personGeometry,
+            personMaterial,
+            this.crowdCount
+        );
+
+        // Posicionar cada instância
+        const matrix = new THREE.Matrix4();
+        const color = new THREE.Color();
+
+        peoplePositions.forEach((person, i) => {
+            matrix.makeTranslation(person.x, person.y, person.z);
+            this.crowdInstances.setMatrixAt(i, matrix);
+
+            // Variação de cor para cada pessoa
+            const hueVariation = (Math.random() - 0.5) * 0.1;
+            color.setHSL(0.08 + hueVariation, 0.8, 0.5); // tons de laranja
+            this.crowdInstances.setColorAt(i, color);
+        });
+
+        this.crowdInstances.instanceMatrix.needsUpdate = true;
+        this.crowdInstances.instanceColor.needsUpdate = true;
+        this.crowdInstances.castShadow = true;
+        this.crowdInstances.receiveShadow = true;
+
+        this.crowdGroup.add(this.crowdInstances);
+    }
+
+    updateCrowdAnimation() {
+        if (!this.crowdInstances || this.crowdCount === 0) return;
+
+        const t = this.time * this.params.crowdAnimationSpeed;
+        const matrix = new THREE.Matrix4();
+        const position = new THREE.Vector3();
+        const rotation = new THREE.Euler();
+        const scale = new THREE.Vector3(1, 1, 1);
+
+        this.crowdData.forEach((person, i) => {
+            // Animação de dança: movimento vertical (pular) + rotação
+            const phase = t + person.randomPhase;
+            const jumpHeight = Math.abs(Math.sin(phase * 2 * person.randomSpeed)) * 0.15;
+            const sway = Math.sin(phase * person.randomSpeed) * 0.05;
+
+            position.set(
+                person.x + sway,
+                person.y + jumpHeight,
+                person.z
+            );
+
+            // Rotação suave no eixo Y (balançar)
+            rotation.set(0, Math.sin(phase * 0.5) * 0.2, 0);
+
+            // Pequena variação de escala (breathing)
+            const breathe = 1 + Math.sin(phase * 3) * 0.05;
+            scale.set(1, breathe, 1);
+
+            matrix.compose(position, new THREE.Quaternion().setFromEuler(rotation), scale);
+            this.crowdInstances.setMatrixAt(i, matrix);
+        });
+
+        this.crowdInstances.instanceMatrix.needsUpdate = true;
+    }
+
+    updateLaserAnimations() {
+        const speed = this.params.laserSpeed || 1.0;
+        const t = this.time * speed;
+
+        this.lasersGroup.children.forEach((laser, index) => {
+            if (!laser.material) return;
+
+            const laserType = laser.userData.laserType;
+            const towerIndex = laser.userData.towerIndex || 0;
+            const stageIndex = laser.userData.stageIndex || 0;
+
+            switch (this.params.laserAnimation) {
+                case 'pulse':
+                    // Pulsar intensidade
+                    const pulseIntensity = (Math.sin(t * 3) + 1) / 2;
+                    laser.material.opacity = 0.3 + pulseIntensity * 0.5;
+                    break;
+
+                case 'chase':
+                    // Perseguição - um laser por vez
+                    const activeIndex = Math.floor(t * 2) % this.lasersGroup.children.length;
+                    laser.material.opacity = (index === activeIndex) ? 0.9 : 0.2;
+                    break;
+
+                case 'sweep':
+                    // Varredura horizontal
+                    if (laserType === 'horizontal' || laserType === 'stage-diagonal') {
+                        const sweepAngle = Math.sin(t * 1.5) * Math.PI / 4;
+                        laser.rotation.y = sweepAngle;
+                    }
+                    break;
+
+                case 'rotate':
+                    // Rotação contínua
+                    if (laserType === 'vertical' || laserType === 'stage-vertical') {
+                        laser.rotation.y = t * 0.5;
+                    } else if (laserType === 'horizontal') {
+                        laser.rotation.x = t * 0.3;
+                    }
+                    break;
+
+                case 'random':
+                    // Movimento aleatório
+                    const randomPhase = Math.sin(t + index * 0.5);
+                    if (laserType === 'horizontal' || laserType === 'stage-diagonal') {
+                        laser.rotation.y = randomPhase * Math.PI / 3;
+                    }
+                    if (laserType === 'vertical' || laserType === 'stage-vertical') {
+                        laser.rotation.z = randomPhase * Math.PI / 6;
+                    }
+                    break;
+
+                case 'tower-wave':
+                    // Onda por torre
+                    const towerPhase = (Math.sin(t * 2 + towerIndex * 0.5) + 1) / 2;
+                    laser.material.opacity = 0.2 + towerPhase * 0.6;
+                    break;
+
+                case 'strobe':
+                    // Strobe rápido
+                    const strobeOn = Math.floor(t * 10) % 2;
+                    laser.material.opacity = strobeOn === 0 ? 0.8 : 0.1;
+                    break;
+
+                case 'stage-sweep':
+                    // Varredura específica do palco
+                    if (laserType === 'stage-vertical' || laserType === 'stage-diagonal') {
+                        const stageSweep = (Math.sin(t * 1.2 + stageIndex * 0.3) + 1) / 2;
+                        laser.material.opacity = 0.3 + stageSweep * 0.6;
+                        if (laserType === 'stage-diagonal') {
+                            laser.rotation.x = Math.PI / 6 + stageSweep * Math.PI / 3;
+                        }
+                    }
+                    break;
+
+                case 'static':
+                default:
+                    laser.material.opacity = 0.65;
                     break;
             }
         });

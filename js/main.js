@@ -390,12 +390,54 @@ class PalcoParametrico {
             });
         }
 
-        const laserPattern = document.getElementById('laser-pattern');
-        if (laserPattern) {
-            laserPattern.addEventListener('change', (e) => {
-                this.laserController.setPattern(e.target.value);
+        const laserAnimation = document.getElementById('laser-animation');
+        if (laserAnimation) {
+            laserAnimation.addEventListener('change', (e) => {
+                this.stageBuilder.setParam('laserAnimation', e.target.value);
             });
         }
+
+        document.getElementById('stage-lasers-enabled').addEventListener('change', (e) => {
+            this.stageBuilder.setParam('stageLasersEnabled', e.target.checked);
+        });
+
+        document.getElementById('p5-lights-enabled').addEventListener('change', (e) => {
+            this.stageBuilder.setParam('p5LightsEnabled', e.target.checked);
+        });
+
+        document.getElementById('p5-light-color').addEventListener('input', (e) => {
+            const color = parseInt(e.target.value.replace('#', ''), 16);
+            this.stageBuilder.setParam('p5LightColor', color);
+        });
+
+        this.setupSlider('p5-intensity', 'p5-intensity-val', (value) => {
+            this.stageBuilder.setParam('p5LightIntensity', parseFloat(value));
+        });
+
+        document.getElementById('crowd-enabled').addEventListener('change', (e) => {
+            this.stageBuilder.setParam('crowdEnabled', e.target.checked);
+        });
+
+        document.getElementById('crowd-pit-enabled').addEventListener('change', (e) => {
+            this.stageBuilder.setParam('crowdPitEnabled', e.target.checked);
+        });
+
+        document.getElementById('crowd-backstage-enabled').addEventListener('change', (e) => {
+            this.stageBuilder.setParam('crowdBackstageEnabled', e.target.checked);
+        });
+
+        this.setupSlider('crowd-density', 'crowd-density-val', (value) => {
+            this.stageBuilder.setParam('crowdDensity', parseFloat(value));
+        });
+
+        document.getElementById('crowd-color').addEventListener('input', (e) => {
+            const color = parseInt(e.target.value.replace('#', ''), 16);
+            this.stageBuilder.setParam('crowdColor', color);
+        });
+
+        this.setupSlider('crowd-speed', 'crowd-speed-val', (value) => {
+            this.stageBuilder.setParam('crowdAnimationSpeed', parseFloat(value));
+        });
 
         document.getElementById('show-glb-model').addEventListener('change', (e) => {
             if (e.target.checked && !this.glbModel) {
@@ -412,48 +454,17 @@ class PalcoParametrico {
     }
 
     createSunsetSky() {
-        const size = 1024;
-        const canvas = document.createElement('canvas');
-        canvas.width = size;
-        canvas.height = size;
-        const ctx = canvas.getContext('2d');
-
-        // Gradient
-        const grad = ctx.createLinearGradient(0, size, 0, 0);
-        grad.addColorStop(0, '#2a1f1a');
-        grad.addColorStop(0.35, '#f47c42');
-        grad.addColorStop(0.55, '#344c73');
-        grad.addColorStop(1, '#0b1027');
-        ctx.fillStyle = grad;
-        ctx.fillRect(0, 0, size, size);
-
-        // Stars
-        ctx.fillStyle = 'white';
-        const starCount = 900;
-        for (let i = 0; i < starCount; i++) {
-            const x = Math.random() * size;
-            const y = Math.random() * (size * 0.7);
-            const r = Math.random() * 1.2 + 0.2;
-            ctx.globalAlpha = Math.random() * 0.8 + 0.2;
-            ctx.beginPath();
-            ctx.arc(x, y, r, 0, Math.PI * 2);
-            ctx.fill();
-        }
-        ctx.globalAlpha = 1.0;
-
-        const texture = new THREE.CanvasTexture(canvas);
-        texture.wrapS = THREE.ClampToEdgeWrapping;
-        texture.wrapT = THREE.ClampToEdgeWrapping;
-        texture.needsUpdate = true;
-
+        // Azul escuro com contraste
         const material = new THREE.MeshBasicMaterial({
-            map: texture,
+            color: 0x141926,  // Azul escuro
             side: THREE.BackSide,
-            toneMapped: false
+            toneMapped: false,
+            depthWrite: false
         });
-        const geo = new THREE.SphereGeometry(500, 32, 32);
+        const geo = new THREE.SphereGeometry(480, 32, 32);
         const mesh = new THREE.Mesh(geo, material);
         mesh.name = 'sunsetSkyDome';
+        mesh.renderOrder = -1;
         return mesh;
     }
 
