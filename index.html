@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Palco Timewarp - Sistema Parametrico de Torres</title>
+    <title>Palco Timewarp - Controle ao Vivo</title>
     <style>
         * {
             margin: 0;
@@ -13,7 +13,7 @@
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: #0a0a15;
+            background: #000;
             color: #fff;
             overflow: hidden;
         }
@@ -26,190 +26,237 @@
             left: 0;
         }
 
-        #controls {
-            position: fixed;
-            top: 10px;
-            right: 10px;
-            width: 340px;
-            background: rgba(15, 15, 30, 0.95);
-            border-radius: 12px;
+        /* Interface de Controle - 4 Quadrantes */
+        /* Desktop: esconder menu mobile */
+        #control-interface {
+            display: none;
+        }
+
+        /* Mobile: mostrar menu compacto */
+        @media (max-width: 900px) {
+            #control-interface {
+                position: fixed;
+                bottom: 10px;
+                left: 50%;
+                transform: translateX(-50%);
+                display: grid;
+                grid-template-columns: repeat(2, minmax(160px, 1fr));
+                gap: 12px;
+                z-index: 1000;
+                padding: 16px;
+                background: rgba(0, 0, 0, 0.85);
+                border-radius: 16px;
+                border: 2px solid rgba(255, 255, 255, 0.1);
+                backdrop-filter: blur(10px);
+                width: calc(100% - 24px);
+                max-width: 420px;
+            }
+        }
+
+        @media (max-width: 600px) {
+            #control-interface {
+                grid-template-columns: 1fr;
+                bottom: 8px;
+            }
+        }
+
+        .control-panel {
             padding: 20px;
-            max-height: 95vh;
-            overflow-y: auto;
-            z-index: 1000;
-            border: 1px solid rgba(255,255,255,0.1);
-            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            text-align: center;
+            min-height: 280px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
         }
 
-        #controls::-webkit-scrollbar {
-            width: 6px;
+        .control-panel h3 {
+            font-size: 16px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
         }
 
-        #controls::-webkit-scrollbar-track {
-            background: rgba(255,255,255,0.05);
-            border-radius: 3px;
+        /* Cores dos painéis */
+        #camera-panel {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         }
 
-        #controls::-webkit-scrollbar-thumb {
-            background: rgba(255,100,100,0.5);
-            border-radius: 3px;
+        #led-panel {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
         }
 
-        #controls h2 {
-            font-size: 20px;
-            margin-bottom: 15px;
-            color: #ff6b6b;
-            border-bottom: 2px solid #ff6b6b;
-            padding-bottom: 10px;
+        #lights-panel {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+
+        #music-panel {
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+        }
+
+        /* Botões de controle */
+        .control-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.4);
+            border-radius: 10px;
+            padding: 15px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 14px;
+            color: white;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .control-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.05);
+        }
+
+        .control-btn:active {
+            transform: scale(0.95);
+        }
+
+        .control-btn.active {
+            background: rgba(255, 255, 255, 0.5);
+            border-color: rgba(255, 255, 255, 0.8);
+        }
+
+        /* Setas de câmera */
+        .camera-arrows {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .arrow-btn {
+            width: 50px;
+            height: 50px;
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.4);
+            border-radius: 10px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            transition: all 0.3s;
+        }
+
+        .arrow-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.1);
+        }
+
+        .arrow-btn.empty {
+            visibility: hidden;
+        }
+
+        /* Seletor de cenas */
+        .scene-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+        }
+
+        .scene-btn {
+            padding: 12px 8px;
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.4);
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 11px;
+            color: white;
+            font-weight: bold;
+            transition: all 0.3s;
             text-align: center;
         }
 
-        #controls h3 {
-            font-size: 13px;
-            margin: 18px 0 12px;
-            color: #4ecdc4;
-            text-transform: uppercase;
-            letter-spacing: 1px;
+        .scene-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
         }
 
-        .control-group {
-            margin-bottom: 12px;
+        .scene-btn.active {
+            background: rgba(255, 255, 255, 0.5);
+            border-color: rgba(255, 255, 255, 0.8);
         }
 
-        .control-group label {
-            display: block;
-            font-size: 11px;
-            color: #aaa;
-            margin-bottom: 5px;
-        }
-
-        .control-group input[type="range"] {
-            width: 100%;
-            height: 6px;
-            border-radius: 3px;
-            background: #222;
-            outline: none;
-            -webkit-appearance: none;
-        }
-
-        .control-group input[type="range"]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            width: 16px;
-            height: 16px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #ff6b6b, #ff8e53);
-            cursor: pointer;
-            box-shadow: 0 0 10px rgba(255,107,107,0.5);
-        }
-
-        .control-group select {
-            width: 100%;
-            padding: 8px 10px;
-            border-radius: 6px;
-            border: 1px solid #333;
-            background: #1a1a2e;
-            color: #fff;
-            font-size: 12px;
-            cursor: pointer;
-        }
-
-        .control-group select:focus {
-            border-color: #ff6b6b;
-            outline: none;
-        }
-
-        .value-display {
-            float: right;
-            color: #ff6b6b;
-            font-weight: bold;
-            font-size: 11px;
-        }
-
-        .btn {
-            width: 100%;
+        /* Music player */
+        .music-track {
             padding: 10px;
-            margin-top: 8px;
-            border: none;
-            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.4);
+            border-radius: 8px;
             cursor: pointer;
             font-size: 12px;
-            font-weight: bold;
             transition: all 0.3s;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
         }
 
-        .btn-primary {
-            background: linear-gradient(135deg, #ff6b6b, #ff8e53);
-            color: #fff;
+        .music-track:hover {
+            background: rgba(255, 255, 255, 0.3);
         }
 
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 20px rgba(255, 107, 107, 0.4);
+        .music-track.active {
+            background: rgba(255, 255, 255, 0.5);
+            border-color: rgba(255, 255, 255, 0.8);
         }
 
-        .btn-secondary {
-            background: linear-gradient(135deg, #4ecdc4, #44a08d);
-            color: #fff;
+        .music-controls {
+            display: flex;
+            gap: 8px;
         }
 
-        .btn-secondary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 20px rgba(78, 205, 196, 0.4);
-        }
-
-        .file-input-wrapper {
-            position: relative;
-            overflow: hidden;
-            display: inline-block;
-            width: 100%;
-        }
-
-        .file-input-wrapper input[type="file"] {
-            position: absolute;
-            left: 0;
-            top: 0;
-            opacity: 0;
+        .play-pause-btn {
+            flex: 1;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.3);
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            border-radius: 10px;
             cursor: pointer;
-            width: 100%;
-            height: 100%;
-        }
-
-        #video-preview {
-            width: 100%;
-            max-height: 120px;
-            margin-top: 10px;
-            border-radius: 6px;
-            display: none;
-            background: #000;
-        }
-
-        .checkbox-group {
+            font-size: 20px;
+            transition: all 0.3s;
             display: flex;
             align-items: center;
-            gap: 10px;
-            padding: 8px 0;
+            justify-content: center;
         }
 
-        .checkbox-group input[type="checkbox"] {
-            width: 18px;
-            height: 18px;
-            accent-color: #ff6b6b;
+        .play-pause-btn:hover {
+            background: rgba(255, 255, 255, 0.4);
+            transform: scale(1.05);
         }
 
-        .checkbox-group label {
-            margin: 0;
-            font-size: 12px;
+        .music-list {
+            max-height: 150px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
         }
 
+        .music-list::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .music-list::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+        }
+
+        .music-list::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 2px;
+        }
+
+        /* Loading screen */
         #loading {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: #0a0a15;
+            background: #000;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -221,7 +268,7 @@
             width: 60px;
             height: 60px;
             border: 4px solid #222;
-            border-top-color: #ff6b6b;
+            border-top-color: #667eea;
             border-radius: 50%;
             animation: spin 1s linear infinite;
         }
@@ -236,51 +283,36 @@
             font-size: 14px;
         }
 
-        .color-picker-wrapper {
-            display: flex;
-            align-items: center;
-            gap: 10px;
+        /* Audio visualizer */
+        #audio-visualizer {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 300px;
+            height: 100px;
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 10px;
+            border: 2px solid rgba(67, 233, 123, 0.5);
+            z-index: 999;
+            display: none;
         }
 
-        .color-picker-wrapper input[type="color"] {
-            width: 40px;
-            height: 28px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            background: transparent;
+        #audio-visualizer.active {
+            display: block;
         }
 
-        .info-box {
-            background: rgba(78, 205, 196, 0.1);
-            border: 1px solid rgba(78, 205, 196, 0.3);
-            border-radius: 6px;
-            padding: 10px;
-            font-size: 10px;
-            color: #888;
-            margin: 10px 0;
-        }
-
-        .info-box strong {
-            color: #4ecdc4;
-        }
-
-        .section-divider {
-            height: 1px;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
-            margin: 15px 0;
-        }
-
+        /* Stats panel simplificado */
         #stats-panel {
             position: fixed;
-            bottom: 10px;
-            left: 10px;
-            background: rgba(15, 15, 30, 0.9);
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.7);
             padding: 12px 18px;
-            border-radius: 8px;
+            border-radius: 10px;
             font-size: 11px;
             font-family: 'Consolas', monospace;
-            border: 1px solid rgba(255,255,255,0.1);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            z-index: 999;
         }
 
         #stats-panel div {
@@ -289,473 +321,111 @@
         }
 
         #stats-panel span {
-            color: #4ecdc4;
+            color: #4facfe;
             font-weight: bold;
         }
 
-        .btn-row {
-            display: flex;
-            gap: 8px;
+        .toggle-advanced {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 10px 20px;
+            background: rgba(0, 0, 0, 0.7);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 12px;
+            color: white;
+            z-index: 999;
         }
 
-        .btn-row .btn {
-            flex: 1;
-        }
-
-        .hidden {
-            display: none !important;
+        .toggle-advanced:hover {
+            background: rgba(0, 0, 0, 0.9);
+            border-color: rgba(255, 255, 255, 0.4);
         }
     </style>
 </head>
 <body>
     <div id="loading">
         <div class="spinner"></div>
-        <p>Iniciando Sistema Parametrico...</p>
+        <p>Carregando Palco Timewarp...</p>
     </div>
 
     <div id="canvas-container"></div>
 
-    <div id="controls">
-        <h2>PALCO TIMEWARP</h2>
+    <!-- Audio Visualizer -->
+    <canvas id="audio-visualizer"></canvas>
 
-        <h3>Torres de Andaime</h3>
-
-        <div class="control-group">
-            <label>Quantidade de Torres <span class="value-display" id="tower-count-val">8</span></label>
-            <input type="range" id="tower-count" min="2" max="12" value="8" step="1">
-        </div>
-
-        <div class="control-group">
-            <label>Formato das Torres</label>
-            <select id="tower-shape">
-                <option value="square">Quadrada (4 canos)</option>
-                <option value="rectangular">Retangular (4 canos)</option>
-                <option value="triangular">Triangular (3 canos)</option>
-            </select>
-        </div>
-
-        <div class="control-group">
-            <label>Altura - Niveis de 2m <span class="value-display" id="tower-levels-val">4</span></label>
-            <input type="range" id="tower-levels" min="2" max="10" value="4" step="1">
-        </div>
-
-        <div class="control-group">
-            <label>Raio de Disposicao (m) <span class="value-display" id="layout-radius-val">8</span></label>
-            <input type="range" id="layout-radius" min="5" max="25" value="8" step="0.5">
-        </div>
-
-        <div class="control-group">
-            <label>Disposicao das Torres</label>
-            <select id="layout-type">
-                <option value="circular">Circular</option>
-                <option value="line">Linha</option>
-                <option value="grid" selected>Grade</option>
-            </select>
-        </div>
-
-        <div class="control-group">
-            <label>Linhas (Grid) <span class="value-display" id="layout-rows-val">5</span></label>
-            <input type="range" id="layout-rows" min="1" max="10" value="5" step="1">
-        </div>
-
-        <div class="control-group">
-            <label>Colunas (Grid) <span class="value-display" id="layout-cols-val">2</span></label>
-            <input type="range" id="layout-cols" min="1" max="10" value="2" step="1">
-        </div>
-
-        <div class="control-group">
-            <label>Espacamento X (m) <span class="value-display" id="layout-spacing-x-val">20</span></label>
-            <label>Espacamento X (m) <span class="value-display" id="layout-spacing-x-val">32</span></label>
-            <input type="range" id="layout-spacing-x" min="2" max="50" value="32" step="0.5">
-        </div>
-
-        <div class="control-group">
-            <label>Espacamento Y (m) <span class="value-display" id="layout-spacing-y-val">8</span></label>
-            <input type="range" id="layout-spacing-y" min="2" max="25" value="8" step="0.5">
-        </div>
-
-        <div class="control-group">
-            <label>Largura da Torre (m) <span class="value-display" id="tower-width-val">2.0</span></label>
-            <input type="range" id="tower-width" min="0.5" max="3" value="2.0" step="0.1">
-        </div>
-
-        <div class="control-group">
-            <label>Profundidade da Torre (m) <span class="value-display" id="tower-depth-val">2.0</span></label>
-            <input type="range" id="tower-depth" min="0.5" max="3" value="2.0" step="0.1">
-        </div>
-
-        <div class="section-divider"></div>
-
-        <h3>Andaimes (Canos 2m)</h3>
-
-        <div class="info-box">
-            <strong>Especificacoes:</strong> Canos de 2m de comprimento padrao para andaimes modulares.
-        </div>
-
-        <div class="control-group">
-            <label>Diametro do Cano (mm) <span class="value-display" id="pipe-diameter-val">48</span></label>
-            <input type="range" id="pipe-diameter" min="30" max="80" value="48" step="2">
-        </div>
-
-        <div class="control-group color-picker-wrapper">
-            <label>Cor dos Canos</label>
-            <input type="color" id="pipe-color" value="#555555">
-        </div>
-
-        <div class="checkbox-group">
-            <input type="checkbox" id="show-diagonal-braces" checked>
-            <label>Mostrar Contraventamentos Diagonais</label>
-        </div>
-
-        <div class="section-divider"></div>
-
-        <h3>LED Box Truss Central (Q50)</h3>
-
-        <div class="info-box">
-            <strong>Modulos 50x50cm</strong> no box truss central de cada torre
-        </div>
-
-        <div class="checkbox-group">
-            <input type="checkbox" id="led-boxtruss-enabled" checked>
-            <label>Ativar LED no Box Truss</label>
-        </div>
-
-        <div class="control-group">
-            <label>Paineis por Face <span class="value-display" id="boxtruss-panels-val">16</span></label>
-            <input type="range" id="boxtruss-panels" min="1" max="20" value="16" step="1">
-        </div>
-
-        <div class="control-group">
-            <label>Faces com LED <span class="value-display" id="boxtruss-faces-val">4</span></label>
-            <input type="range" id="boxtruss-faces" min="1" max="4" value="4" step="1">
-        </div>
-
-        <div class="control-group color-picker-wrapper">
-            <label>Cor LED BoxTruss</label>
-            <input type="color" id="led-color-box" value="#ff0066">
-        </div>
-
-        <div class="control-group">
-            <label>Intensidade BoxTruss <span class="value-display" id="led-intensity-box-val">6.0</span></label>
-            <input type="range" id="led-intensity-box" min="0" max="6" value="6" step="0.1">
-        </div>
-
-        <div class="section-divider"></div>
-
-        <h3>LED Andaimes Externos</h3>
-
-        <div class="info-box">
-            <strong>LR3.9-7.8:</strong> 1000x500mm | Peso: ~6kg
-        </div>
-
-        <div class="checkbox-group">
-            <input type="checkbox" id="led-external-enabled" checked>
-            <label>Ativar LED nos Andaimes</label>
-        </div>
-
-        <div class="control-group">
-            <label>Paineis por Face <span class="value-display" id="external-panels-val">8</span></label>
-            <input type="range" id="external-panels" min="1" max="20" value="8" step="1">
-        </div>
-
-        <div class="control-group">
-            <label>Faces com LED <span class="value-display" id="external-faces-val">4</span></label>
-            <input type="range" id="external-faces" min="1" max="4" value="4" step="1">
-        </div>
-
-        <div class="control-group">
-            <label>Paineis por Linha (1 ou 2) <span class="value-display" id="external-panels-row-val">2</span></label>
-            <input type="range" id="external-panels-row" min="1" max="2" value="2" step="1">
-        </div>
-
-        <div class="control-group color-picker-wrapper">
-            <label>Cor LED Externo</label>
-            <input type="color" id="led-color-external" value="#ff0000">
-        </div>
-
-        <div class="control-group">
-            <label>Intensidade Externo <span class="value-display" id="led-intensity-external-val">6.0</span></label>
-            <input type="range" id="led-intensity-external" min="0" max="6" value="6" step="0.1">
-        </div>
-
-        <div class="checkbox-group">
-            <input type="checkbox" id="hide-rear-panels" checked>
-            <label>Remover LEDs traseiros e colocar pano preto</label>
-        </div>
-
-        <div class="section-divider"></div>
-
-        <h3>Conteudo de Video</h3>
-
-        <div class="file-input-wrapper">
-            <button class="btn btn-secondary">Carregar Video Local</button>
-            <input type="file" id="video-upload" accept="video/*">
-        </div>
-
-        <video id="video-preview" loop muted></video>
-
-        <div class="control-group" style="margin-top: 10px;">
-            <label>URL do Video (MP4, WebM)</label>
-            <input type="text" id="video-url" placeholder="https://exemplo.com/video.mp4" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #333; background: #1a1a2e; color: #fff; font-size: 11px;">
-        </div>
-
-        <button class="btn btn-primary" id="apply-video">Aplicar Video aos Paineis</button>
-
-        <div class="btn-row" style="margin-top: 8px;">
-            <button class="btn btn-secondary" id="play-video">Play</button>
-            <button class="btn btn-secondary" id="pause-video">Pause</button>
-        </div>
-
-        <div class="section-divider"></div>
-
-        <h3>Efeitos LED</h3>
-
-        <div class="control-group">
-            <label>Modo de Cor</label>
-            <select id="led-effect">
-                <option value="solid">Cor Sólida</option>
-                <option value="rainbow">Arco-Íris</option>
-                <option value="pulse">Pulsar</option>
-                <option value="wave" selected>Onda</option>
-                <option value="strobe">Strobe</option>
-                <option value="chase">Chase (Perseguição)</option>
-                <option value="tower-wave">Onda por Torre</option>
-                <option value="vertical-scan">Scanner Vertical</option>
-                <option value="sparkle">Sparkle (Brilho)</option>
-                <option value="rainbow-wave">Arco-Íris Ondulado</option>
-                <option value="fire">Fogo</option>
-                <option value="alternate">Torres Alternadas</option>
-                <option value="wipe-horizontal">Cortina Horizontal</option>
-                <option value="wipe-vertical">Cortina Vertical</option>
-                <option value="center-out">Centro para Fora</option>
-                <option value="edge-in">Bordas para Centro</option>
-                <option value="diagonal">Diagonal</option>
-                <option value="kaleidoscope">Caleidoscópio</option>
-                <option value="matrix-rain">Matrix Rain</option>
-                <option value="rings">Anéis Pulsantes</option>
-                <option value="spin">Rotação Espiral</option>
-                <option value="checkerboard">Tabuleiro Xadrez</option>
-                <option value="build-up">Build Up (EDM)</option>
-                <option value="video">Vídeo</option>
-            </select>
-        </div>
-
-        <div class="control-group color-picker-wrapper">
-            <label>Cor Base LED</label>
-            <input type="color" id="led-color" value="#ff0066">
-        </div>
-
-        <div class="control-group">
-            <label>Intensidade Global <span class="value-display" id="led-intensity-val">1.4</span></label>
-            <input type="range" id="led-intensity" min="0" max="6" value="1.4" step="0.1">
-        </div>
-
-        <div class="control-group">
-            <label>Velocidade da Animacao <span class="value-display" id="animation-speed-val">1.0</span></label>
-            <input type="range" id="animation-speed" min="0.1" max="5" value="1" step="0.1">
-        </div>
-
-        <div class="section-divider"></div>
-
-        <h3>Camera e Visualizacao</h3>
-
-        <button class="btn btn-secondary" id="reset-camera">Reset Camera</button>
-
-        <div class="btn-row">
-            <button class="btn btn-secondary" id="top-view">Topo</button>
-            <button class="btn btn-secondary" id="front-view">Frente</button>
-            <button class="btn btn-secondary" id="side-view">Lado</button>
-        </div>
-
-        <div class="checkbox-group">
-            <input type="checkbox" id="auto-rotate">
-            <label>Rotacao Automatica</label>
-        </div>
-
-
-
-        <div class="checkbox-group">
-            <input type="checkbox" id="show-floor" checked>
-            <label>Mostrar Piso</label>
-        </div>
-
-
-
-        <div class="checkbox-group">
-            <input type="checkbox" id="show-stage-deck" checked>
-            <label>Mostrar Palco Modular</label>
-        </div>
-
-        <div class="checkbox-group">
-            <input type="checkbox" id="show-dimensions">
-            <label>Mostrar Dimensões Visuais</label>
-        </div>
-
-        <div class="checkbox-group">
-            <input type="checkbox" id="show-towers" checked>
-            <label>Mostrar Torres e LEDs</label>
-        </div>
-
-        <div class="checkbox-group">
-            <input type="checkbox" id="lasers-enabled" checked>
-            <label>Laser por torre</label>
-        </div>
-
-        <div class="control-group">
-            <label>Cor do Laser</label>
-            <input type="color" id="laser-color" value="#00ff00">
-        </div>
-
-        <div class="control-group">
-            <label>Velocidade Laser <span class="value-display" id="laser-speed-val">1</span></label>
-            <input type="range" id="laser-speed" min="0.1" max="3" step="0.1" value="1">
-        </div>
-
-        <div class="control-group">
-            <label>Animação Laser</label>
-            <select id="laser-animation">
-                <option value="static" selected>Estático</option>
-                <option value="pulse">Pulsar</option>
-                <option value="chase">Chase (Perseguição)</option>
-                <option value="sweep">Varredura Horizontal</option>
-                <option value="rotate">Rotação</option>
-                <option value="random">Aleatório</option>
-                <option value="tower-wave">Onda por Torre</option>
-                <option value="strobe">Strobe</option>
-                <option value="stage-sweep">Varredura Palco</option>
-            </select>
-        </div>
-
-        <div class="checkbox-group">
-            <input type="checkbox" id="stage-lasers-enabled" checked>
-            <label>Lasers no Palco</label>
-        </div>
-
-        <h3>Luzes P5</h3>
-
-        <div class="checkbox-group">
-            <input type="checkbox" id="p5-lights-enabled" checked>
-            <label>Luzes P5</label>
-        </div>
-
-        <div class="control-group color-picker-wrapper">
-            <label>Cor Luzes P5</label>
-            <input type="color" id="p5-light-color" value="#ffffff">
-        </div>
-
-        <div class="control-group">
-            <label>Intensidade P5 <span class="value-display" id="p5-intensity-val">2.0</span></label>
-            <input type="range" id="p5-intensity" min="0" max="5" step="0.1" value="2.0">
-        </div>
-
-        <h3>Público (Crowd)</h3>
-
-        <div class="checkbox-group">
-            <input type="checkbox" id="crowd-enabled" checked>
-            <label>Mostrar Público</label>
-        </div>
-
-        <div class="checkbox-group">
-            <input type="checkbox" id="crowd-pit-enabled" checked>
-            <label>Público na Pista</label>
-        </div>
-
-        <div class="checkbox-group">
-            <input type="checkbox" id="crowd-backstage-enabled" checked>
-            <label>Público no Backstage</label>
-        </div>
-
-        <div class="control-group">
-            <label>Densidade <span class="value-display" id="crowd-density-val">2.5</span> p/m²</label>
-            <input type="range" id="crowd-density" min="1.0" max="4.0" step="0.1" value="2.5">
-        </div>
-
-        <div class="control-group color-picker-wrapper">
-            <label>Cor do Público</label>
-            <input type="color" id="crowd-color" value="#ff6600">
-        </div>
-
-        <div class="control-group">
-            <label>Velocidade Dança <span class="value-display" id="crowd-speed-val">1.0</span></label>
-            <input type="range" id="crowd-speed" min="0.3" max="2.0" step="0.1" value="1.0">
-        </div>
-
-        <div class="checkbox-group">
-            <input type="checkbox" id="railings-enabled" checked>
-            <label>Gradil em volta do palco</label>
-        </div>
-
-        <div class="checkbox-group">
-            <input type="checkbox" id="stairs-enabled" checked>
-            <label>Escadas laterais</label>
-        </div>
-
-        <div class="checkbox-group">
-            <input type="checkbox" id="risers-enabled" checked>
-            <label>Praticáveis DJ</label>
-        </div>
-
-        <h3>Palco Modular</h3>
-        <div class="control-group">
-            <label>Backstage Esq (m) <span class="value-display" id="deck-back-left-val">8.75</span></label>
-            <input type="range" id="deck-back-left" min="2" max="15" value="8.75" step="0.25">
-        </div>
-        <div class="control-group">
-            <label>Backstage Centro (m) <span class="value-display" id="deck-back-center-val">13.75</span></label>
-            <input type="range" id="deck-back-center" min="2" max="20" value="13.75" step="0.25">
-        </div>
-        <div class="control-group">
-            <label>Backstage Dir (m) <span class="value-display" id="deck-back-right-val">8.75</span></label>
-            <input type="range" id="deck-back-right" min="2" max="15" value="8.75" step="0.25">
-        </div>
-        <div class="control-group">
-            <label>Profundidade Backstage (m) <span class="value-display" id="deck-back-depth-val">7.5</span></label>
-            <input type="range" id="deck-back-depth" min="2" max="12" value="7.5" step="0.25">
-        </div>
-        <div class="control-group">
-            <label>Largura DJ (m) <span class="value-display" id="deck-dj-width-val">8.75</span></label>
-            <input type="range" id="deck-dj-width" min="2" max="15" value="8.75" step="0.25">
-        </div>
-        <div class="control-group">
-            <label>Profundidade DJ (m) <span class="value-display" id="deck-dj-depth-val">3.75</span></label>
-            <input type="range" id="deck-dj-depth" min="1" max="10" value="3.75" step="0.25">
-        </div>
-        <div class="control-group">
-            <label>Largura Frente (m) <span class="value-display" id="deck-front-width-val">0</span></label>
-            <input type="range" id="deck-front-width" min="0" max="20" value="0" step="0.25">
-        </div>
-        <div class="control-group">
-            <label>Profundidade Frente (m) <span class="value-display" id="deck-front-depth-val">0</span></label>
-            <input type="range" id="deck-front-depth" min="0" max="10" value="0" step="0.25">
-        </div>
-        <div class="control-group">
-            <label>Altura do Palco (m) <span class="value-display" id="deck-height-val">1.33</span></label>
-            <input type="range" id="deck-height" min="0.5" max="3" value="1.33" step="0.05">
-        </div>
-
-        <div class="checkbox-group">
-            <input type="checkbox" id="show-glb-model">
-            <label>Mostrar Cenário (GANGANBAIAU.glb)</label>
-        </div>
-
-        <div class="section-divider"></div>
-
-        <button class="btn btn-primary" id="export-config">Exportar Configuracao</button>
-    </div>
-
+    <!-- Stats Panel -->
     <div id="stats-panel">
         <div>FPS: <span id="fps">0</span></div>
-        <div>Torres: <span id="tower-stat">0</span></div>
-        <div>LED Externo 1000x500: <span id="panel-external-stat">0</span></div>
-        <div>LED BoxTruss 500x500: <span id="panel-boxtruss-stat">0</span></div>
-        <div>Total de Paineis: <span id="panel-total-stat">0</span></div>
-        <div>Área LED Externo (m²): <span id="panel-external-area">0</span></div>
-        <div>Área LED BoxTruss (m²): <span id="panel-boxtruss-area">0</span></div>
-        <div>Área LED Total (m²): <span id="panel-total-area">0</span></div>
-        <div>Dim Torres (LxPxH): <span id="tower-dims">-</span></div>
-        <div>Largura da Torre: <span id="tower-width-only">-</span></div>
-        <div>Dim Palco (LxPxH): <span id="stage-dims">-</span></div>
-        <div>Triangulos: <span id="triangles">0</span></div>
+        <div>Audio: <span id="audio-status">OFF</span></div>
+        <div>Beat: <span id="beat-indicator">●</span></div>
+    </div>
+
+    <!-- Main Control Interface -->
+    <div id="control-interface">
+        <!-- Panel 1: Camera -->
+        <div class="control-panel" id="camera-panel">
+            <h3>🎥 Câmera</h3>
+            <div class="camera-arrows">
+                <div class="arrow-btn empty"></div>
+                <div class="arrow-btn" id="cam-forward">↑</div>
+                <div class="arrow-btn empty"></div>
+
+                <div class="arrow-btn" id="cam-left">←</div>
+                <div class="arrow-btn" id="cam-reset">⊙</div>
+                <div class="arrow-btn" id="cam-right">→</div>
+
+                <div class="arrow-btn empty"></div>
+                <div class="arrow-btn" id="cam-backward">↓</div>
+                <div class="arrow-btn empty"></div>
+            </div>
+            <button class="control-btn" id="cam-auto-toggle">▶ Auto-Rotate</button>
+        </div>
+
+        <!-- Panel 2: LED Content -->
+        <div class="control-panel" id="led-panel">
+            <h3>💡 Cenas LED</h3>
+            <div class="scene-grid" id="led-scenes">
+                <button class="scene-btn" data-scene="wave">🌊 Onda</button>
+                <button class="scene-btn" data-scene="pulse">💓 Pulse</button>
+                <button class="scene-btn" data-scene="rainbow">🌈 Rainbow</button>
+                <button class="scene-btn" data-scene="strobe">⚡ Strobe</button>
+                <button class="scene-btn" data-scene="fire">🔥 Fogo</button>
+                <button class="scene-btn" data-scene="matrix-rain">💚 Matrix</button>
+                <button class="scene-btn active" data-scene="audio-reactive">🎵 Audio</button>
+                <button class="scene-btn" data-scene="audio-bass">🔊 Bass</button>
+            </div>
+        </div>
+
+        <!-- Panel 3: Lights/Lasers -->
+        <div class="control-panel" id="lights-panel">
+            <h3>✨ Luzes & Lasers</h3>
+            <div class="scene-grid" id="light-scenes">
+                <button class="scene-btn" data-scene="static">⭐ Estático</button>
+                <button class="scene-btn" data-scene="sweep">↔️ Sweep</button>
+                <button class="scene-btn" data-scene="rotate">🔄 Rotação</button>
+                <button class="scene-btn" data-scene="chase">🏃 Chase</button>
+                <button class="scene-btn" data-scene="random">🎲 Random</button>
+                <button class="scene-btn" data-scene="strobe-laser">⚡ Strobe</button>
+                <button class="scene-btn active" data-scene="audio-sync">🎵 Sync</button>
+                <button class="scene-btn" data-scene="audio-kick">🥁 Kick</button>
+            </div>
+        </div>
+
+        <!-- Panel 4: Music -->
+        <div class="control-panel" id="music-panel">
+            <h3>🎵 Música</h3>
+            <div class="music-controls">
+                <button class="play-pause-btn" id="music-play">▶</button>
+                <button class="play-pause-btn" id="music-pause">⏸</button>
+            </div>
+            <div class="music-list" id="music-tracks">
+                <!-- Will be populated dynamically -->
+            </div>
+        </div>
     </div>
 
     <script type="importmap">
