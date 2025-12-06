@@ -1893,17 +1893,42 @@ export class StageBuilder {
         });
 
         // Adicionar P5 nas torres
-        this.towersGroup.children.forEach((tower, towerIdx) => {
+        this.towersGroup.children.forEach((tower) => {
             const box = new THREE.Box3().setFromObject(tower);
             if (!isFinite(box.min.y)) return;
 
-            const towerWidth = box.max.x - box.min.x;
-            const towerDepth = box.max.z - box.min.z;
             const towerHeight = box.max.y - box.min.y;
             const centerX = (box.min.x + box.max.x) / 2;
-            const centerZ = (box.min.z + box.min.z) / 2;
+            const centerZ = (box.min.z + box.max.z) / 2;
 
-            // Pista em frente ao palco (lado +Z)
+            const p5Geom = new THREE.BoxGeometry(p5Size, p5Size, p5Size);
+            const p5Mesh = new THREE.Mesh(p5Geom, p5Material.clone());
+            p5Mesh.position.set(centerX, towerHeight * 0.6, centerZ);
+            p5Mesh.userData.type = 'p5Light';
+            this.p5LightsGroup.add(p5Mesh);
+        });
+    }
+
+    buildCrowd() {
+        // Limpar crowd existente
+        if (this.crowdInstances) {
+            this.crowdInstances.geometry.dispose();
+            this.crowdInstances.material.dispose();
+            this.crowdGroup.remove(this.crowdInstances);
+            this.crowdInstances = null;
+        }
+        this.crowdData = [];
+        this.crowdCount = 0;
+
+        if (!this.params.crowdEnabled) return;
+
+        const deckBox = new THREE.Box3().setFromObject(this.stageDeck);
+        if (!isFinite(deckBox.min.x)) return;
+
+        const density = this.params.crowdDensity; // pessoas por m?
+        const peoplePositions = [];
+
+        // Pista em frente ao palco (lado +Z)
         if (this.params.crowdPitEnabled) {
             const pitWidth = deckBox.max.x - deckBox.min.x;
             const pitDepth = 12; // profundidade fixa da pista para frente
@@ -1945,7 +1970,7 @@ export class StageBuilder {
                     const randomOffset = (Math.random() - 0.5) * gridSpacing * 0.5;
                     const x = backstageStartX + (col + 0.5) * gridSpacing + randomOffset;
                     const z = startZ - (row + 0.5) * gridSpacing + randomOffset * 0.5;
-                    const y = this.params.deckHeight + 0.9; // altura do deck + metade da pessoa
+                    const y = this.params.deckHeight + 0.9;
 
                     peoplePositions.push({
                         x, y, z,
@@ -1959,14 +1984,6 @@ export class StageBuilder {
 
         this.crowdCount = peoplePositions.length;
         this.crowdData = peoplePositions;
-
-        // Log de capacidade
-        console.log(`=== CAPACIDADE DO PÚBLICO ===`);
-        console.log(`Pista: ${pitCapacity} pessoas (${pitArea.toFixed(1)}m² × ${density} p/m²)`);
-        console.log(`Backstage: ${backstageCapacity} pessoas (${backstageArea.toFixed(1)}m² × ${density} p/m²)`);
-        console.log(`TOTAL: ${this.crowdCount} pessoas`);
-
-        if (this.crowdCount === 0) return;
 
         // Criar geometria de pessoa (cilindro simples representando corpo)
         const personGeometry = new THREE.CylinderGeometry(0.2, 0.2, 1.8, 6);
@@ -1983,7 +2000,7 @@ export class StageBuilder {
             this.crowdCount
         );
 
-        // Posicionar cada instância
+        // Posicionar cada inst?ncia
         const matrix = new THREE.Matrix4();
         const color = new THREE.Color();
 
@@ -1991,9 +2008,9 @@ export class StageBuilder {
             matrix.makeTranslation(person.x, person.y, person.z);
             this.crowdInstances.setMatrixAt(i, matrix);
 
-            // Variação de cor para cada pessoa
+            // Varia??o de cor para cada pessoa
             const hueVariation = (Math.random() - 0.5) * 0.1;
-            color.setHSL(0.08 + hueVariation, 0.8, 0.5); // tons de laranja
+            color.setHSL(0.08 + hueVariation, 0.8, 0.5);
             this.crowdInstances.setColorAt(i, color);
         });
 
