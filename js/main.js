@@ -29,6 +29,9 @@ class PalcoParametrico {
         this.currentLedScene = 'audio-reactive';
         this.currentLightScene = 'audio-sync';
 
+        // Audio unlock prompt
+        this.audioPrompt = null;
+
         // Stats tracking
         this.stats = { fps: 0, triangles: 0 };
         this.lastFrameTime = performance.now();
@@ -105,6 +108,9 @@ class PalcoParametrico {
 
         // Generate QR code for remote control page
         this.generateQrCode();
+
+        // Start overlay (desktop unlock)
+        this.setupStartOverlay();
 
         // Window resize handler
         window.addEventListener('resize', () => this.onWindowResize());
@@ -831,6 +837,8 @@ class PalcoParametrico {
         // Hide QR overlay when control page connects
         this.syncManager.on('control-open', () => {
             this.hideQrOverlay();
+            this.hideStartOverlay();
+            this.attemptAudioStart();
         });
 
         // Atualizar painel de info quando cenas mudam
@@ -857,6 +865,8 @@ class PalcoParametrico {
                 }
             } else if (data.type === 'control-open') {
                 this.hideQrOverlay();
+                this.hideStartOverlay();
+                this.attemptAudioStart();
             } else if (data.kind === 'scene') {
                 if (data.target === 'led') {
                     this.stageBuilder.setParam('ledEffect', data.action);
@@ -1015,6 +1025,7 @@ class PalcoParametrico {
             if (isTouch) {
                 window.location.href = url;
                 this.hideQrOverlay();
+                this.attemptAudioStart();
             } else {
                 this.hideQrOverlay();
             }
@@ -1037,9 +1048,94 @@ class PalcoParametrico {
                 const isTouch = event.pointerType === 'touch' || navigator.maxTouchPoints > 0;
                 if (isTouch) {
                     window.location.href = url;
+                    this.hideQrOverlay();
+                    this.attemptAudioStart();
                 }
             });
         }
+    }
+
+    setupStartOverlay() {
+        const startOverlay = document.getElementById('start-overlay');
+        const btn = document.getElementById('start-experience');
+        const hide = () => {
+            if (startOverlay) startOverlay.classList.add('hidden');
+        };
+
+        if (this.isTouchDevice()) {
+            hide();
+        }
+
+        if (btn) {
+            btn.addEventListener('click', () => {
+                this.attemptAudioStart();
+                hide();
+            });
+        }
+    }
+
+    isTouchDevice() {
+        return 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    }
+
+    async attemptAudioStart() {
+        if (!this.audioSystem) return;
+
+        try {
+            if (this.audioSystem.audioContext && this.audioSystem.audioContext.state === 'suspended') {
+                await this.audioSystem.audioContext.resume();
+            }
+            await this.audioSystem.play();
+            this.hideAudioPrompt();
+        } catch (err) {
+            console.warn('Audio autoplay blocked, requesting user gesture', err);
+            this.showAudioPrompt();
+        }
+    }
+
+    showAudioPrompt() {
+        if (this.audioPrompt) return;
+
+        const prompt = document.createElement('div');
+        prompt.id = 'audio-unlock';
+        prompt.style.position = 'fixed';
+        prompt.style.bottom = '16px';
+        prompt.style.right = '16px';
+        prompt.style.zIndex = '3000';
+        prompt.style.background = 'rgba(15,15,30,0.9)';
+        prompt.style.border = '1px solid rgba(255,255,255,0.2)';
+        prompt.style.borderRadius = '10px';
+        prompt.style.padding = '12px 14px';
+        prompt.style.color = '#fff';
+        prompt.style.fontSize = '12px';
+        prompt.style.boxShadow = '0 10px 30px rgba(0,0,0,0.4)';
+        prompt.style.display = 'flex';
+        prompt.style.alignItems = 'center';
+        prompt.style.gap = '10px';
+
+        const text = document.createElement('span');
+        text.textContent = 'Clique para ativar áudio';
+        const btn = document.createElement('button');
+        btn.textContent = 'Ativar';
+        btn.style.background = 'linear-gradient(135deg, #ff6b6b, #ff8e53)';
+        btn.style.color = '#fff';
+        btn.style.border = 'none';
+        btn.style.borderRadius = '6px';
+        btn.style.padding = '8px 10px';
+        btn.style.cursor = 'pointer';
+        btn.onclick = () => this.attemptAudioStart();
+
+        prompt.appendChild(text);
+        prompt.appendChild(btn);
+        document.body.appendChild(prompt);
+        this.audioPrompt = prompt;
+    }
+
+    hideAudioPrompt() {
+        if (this.audioPrompt && this.audioPrompt.parentNode) {
+            this.audioPrompt.parentNode.removeChild(this.audioPrompt);
+        }
+        this.audioPrompt = null;
     }
 
     createSunsetSky() {
