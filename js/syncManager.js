@@ -1,69 +1,68 @@
 /**
- * Sync Manager - WebSocket broadcast between control (mobile) and stage (desktop)
- * Uses native WebSocket talking to the Edge function at /api/socket.
+ * Sync Manager - usa Upstash Redis (SSE + REST) para sincronizar control/stage
  */
 export class SyncManager {
     constructor() {
-        this.socket = null;
         this.connected = false;
-        this.isController = false; // Mobile device acting as controller
+        this.isController = false;
         this.listeners = new Map();
+        this.eventSource = null;
         this.reconnectTimer = null;
     }
 
     async connect() {
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const wsUrl = `${protocol}//${window.location.host}/api/socket`;
+        this.isController = window.innerWidth <= 900;
+        this.openEventSource();
+        return true;
+    }
 
-        return new Promise((resolve) => {
-            try {
-                this.socket = new WebSocket(wsUrl);
-            } catch (error) {
-                console.warn('Sync server not available, running standalone', error);
-                resolve(false);
-                return;
-            }
+    openEventSource() {
+        if (this.eventSource) {
+            this.eventSource.close();
+            this.eventSource = null;
+        }
 
-            let resolved = false;
-            const finish = (ok) => {
-                if (resolved) return;
-                resolved = true;
-                resolve(ok);
-            };
+        try {
+            this.eventSource = new EventSource('/api/events');
+        } catch (err) {
+            console.warn('Failed to open event stream', err);
+            this.scheduleReconnect();
+            return;
+        }
 
-            this.socket.addEventListener('open', () => {
-                console.log('Connected to sync server (WebSocket)');
-                this.connected = true;
-                this.isController = window.innerWidth <= 900;
-                finish(true);
-            });
-
-            this.socket.addEventListener('close', () => {
-                this.connected = false;
-                this.scheduleReconnect();
-                finish(false);
-            });
-
-            this.socket.addEventListener('error', (err) => {
-                console.warn('Sync socket error', err);
-                this.connected = false;
-                try {
-                    this.socket.close();
-                } catch (e) {
-                    /* ignore */
-                }
-            });
-
-            this.socket.addEventListener('message', (event) => {
-                try {
-                    const payload = JSON.parse(event.data);
-                    if (!payload || !payload.type) return;
-                    this.emit(payload.type, payload.data);
-                } catch (e) {
-                    console.warn('Invalid sync message', e);
-                }
-            });
+        this.eventSource.addEventListener('open', () => {
+            this.connected = true;
         });
+
+        this.eventSource.addEventListener('error', () => {
+            this.connected = false;
+            this.scheduleReconnect();
+        });
+
+        this.eventSource.addEventListener('message', (event) => {
+            if (!event.data) return;
+            try {
+                const payload = JSON.parse(event.data);
+                if (!payload || !payload.type) return;
+                this.emit(payload.type, payload.data);
+            } catch (e) {
+                // ignore invalid message
+            }
+        });
+    }
+
+    async sendMessage(type, data) {
+        try {
+            await fetch('/api/emit', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ type, data })
+            });
+        } catch (err) {
+            console.warn('Failed to emit message', err);
+        }
     }
 
     // Send control change to other devices
@@ -96,12 +95,6 @@ export class SyncManager {
         this.sendMessage('audio-data', audioData);
     }
 
-    sendMessage(type, data) {
-        if (!this.socket || this.socket.readyState !== WebSocket.OPEN) return;
-        const payload = JSON.stringify({ type, data });
-        this.socket.send(payload);
-    }
-
     // Event listener pattern
     on(event, callback) {
         if (!this.listeners.has(event)) {
@@ -132,7 +125,7 @@ export class SyncManager {
         if (this.reconnectTimer) return;
         this.reconnectTimer = setTimeout(() => {
             this.reconnectTimer = null;
-            this.connect();
+            this.openEventSource();
         }, 2000);
     }
 
@@ -141,13 +134,9 @@ export class SyncManager {
             clearTimeout(this.reconnectTimer);
             this.reconnectTimer = null;
         }
-        if (this.socket) {
-            try {
-                this.socket.close();
-            } catch (e) {
-                /* ignore */
-            }
-            this.socket = null;
+        if (this.eventSource) {
+            this.eventSource.close();
+            this.eventSource = null;
         }
         this.connected = false;
     }
