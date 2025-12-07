@@ -33,6 +33,33 @@ class ControlApp {
 
         // FPS Counter
         this.startFPSCounter();
+
+        // Notify main app that control page is open
+        this.notifyControlOpen();
+    }
+
+    notifyControlOpen() {
+        // Notify main app via Upstash relay
+        fetch('/api/emit', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ type: 'control-open', data: { ts: Date.now() } })
+        }).catch(() => {});
+
+        // Also notify via BroadcastChannel for same-device cases
+        try {
+            const bc = new BroadcastChannel('palco-control');
+            bc.postMessage({ type: 'control-open' });
+        } catch (e) {
+            /* ignore */
+        }
+
+        // And postMessage to opener/parent if exists
+        if (window.opener) {
+            window.opener.postMessage({ type: 'control-open' }, '*');
+        } else if (window.parent !== window) {
+            window.parent.postMessage({ type: 'control-open' }, '*');
+        }
     }
 
     initBackground() {

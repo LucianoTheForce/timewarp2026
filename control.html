@@ -57,12 +57,14 @@
         /* Home Screen */
         #home {
             width: 100%;
-            min-height: 100vh;
+            height: 100vh;
             display: flex;
             flex-direction: column;
             align-items: flex-start;
-            padding: 80px 30px 100px;
+            justify-content: center;
+            padding: 0;
             position: relative;
+            overflow: hidden;
         }
 
         .close-btn {
@@ -81,118 +83,140 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            opacity: 0;
+            opacity: 0.8;
+            z-index: 100;
         }
 
         .similar-text {
-            font-size: 32px;
+            position: absolute;
+            top: 50%;
+            left: 40px;
+            transform: translateY(-50%);
+            font-size: 36px;
             font-weight: 300;
             color: white;
-            margin-bottom: 40px;
-            opacity: 0;
+            opacity: 1;
             letter-spacing: -0.5px;
+            z-index: 10;
         }
 
-        /* Category Bubbles Container */
-        .bubbles-container {
-            width: 100%;
-            display: flex;
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 30px;
-        }
-
-        .category-bubble {
-            border-radius: 50%;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            backdrop-filter: blur(40px);
-            border: 3px solid rgba(255, 255, 255, 0.2);
-            transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-            opacity: 0;
-            overflow: hidden;
-            background: rgba(255, 255, 255, 0.08);
-            position: relative;
-        }
-
-        .category-bubble::before {
-            content: '';
+        /* Circular gradient background */
+        .gradient-bg {
             position: absolute;
-            inset: -50%;
-            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+            width: 140%;
+            height: 140%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: radial-gradient(circle at center, rgba(100, 80, 150, 0.4) 0%, transparent 60%);
             z-index: 0;
+            pointer-events: none;
         }
 
-        .category-bubble:active {
-            transform: scale(0.95);
-        }
-
-        .bubble-content {
+        /* Slider Container */
+        .slider-container {
             position: relative;
-            z-index: 1;
+            width: 100%;
+            height: 100vh;
             display: flex;
-            flex-direction: column;
             align-items: center;
             justify-content: center;
+            overflow: hidden;
+        }
+
+        .slider-track {
+            position: relative;
             width: 100%;
             height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
         }
 
-        .bubble-image {
+        .slider-item {
+            position: relative;
+            border-radius: 50%;
+            overflow: hidden;
+            transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            flex-shrink: 0;
+            cursor: pointer;
+        }
+
+        .slider-item img {
             width: 100%;
             height: 100%;
             object-fit: cover;
-            border-radius: 50%;
+            display: block;
         }
 
-        .bubble-icon {
-            font-size: 48px;
-            filter: drop-shadow(0 4px 12px rgba(0,0,0,0.5));
-        }
-
-        .bubble-label {
-            font-size: 11px;
-            font-weight: 500;
-            text-align: center;
-            text-shadow: 0 2px 8px rgba(0,0,0,0.8);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-top: 8px;
-        }
-
-        /* Size variations - matching the image */
-        .category-bubble.small {
+        /* Size states */
+        .slider-item.tiny {
             width: 100px;
             height: 100px;
-            margin-left: 20px;
+            opacity: 0.4;
+            margin: 15px 0;
+            filter: blur(2px);
         }
 
-        .category-bubble.medium {
-            width: 150px;
-            height: 150px;
-            margin-left: 40px;
+        .slider-item.small {
+            width: 140px;
+            height: 140px;
+            opacity: 0.6;
+            margin: 20px 0;
+            filter: blur(1px);
         }
 
-        .category-bubble.large {
-            width: 220px;
-            height: 220px;
-            margin-left: 60px;
-            border-width: 4px;
+        .slider-item.center {
+            width: 240px;
+            height: 240px;
+            opacity: 1;
+            margin: 30px 0;
+            filter: blur(0);
+            box-shadow: 0 0 0 8px rgba(255, 255, 255, 0.15),
+                        0 30px 80px rgba(0, 0, 0, 0.6);
+            z-index: 50;
         }
 
-        .category-bubble.xlarge {
-            width: 160px;
-            height: 160px;
-            margin-left: 20px;
+        /* Glass effect on center item */
+        .slider-item.center::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 50%;
+            background: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, transparent 50%);
+            backdrop-filter: blur(20px);
+            z-index: 1;
+            pointer-events: none;
         }
 
-        .category-bubble.tiny {
-            width: 120px;
-            height: 120px;
-            margin-left: 10px;
+        /* Center item ring */
+        .slider-item.center::after {
+            content: '';
+            position: absolute;
+            inset: -8px;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.15);
+            z-index: -1;
+        }
+
+        .slider-item.label-visible .item-label {
+            opacity: 1;
+        }
+
+        .item-label {
+            position: absolute;
+            bottom: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 11px;
+            color: rgba(255,255,255,0.7);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            white-space: nowrap;
+            opacity: 0;
+            transition: opacity 0.3s;
         }
 
         /* Player View */
@@ -811,41 +835,33 @@
         <div id="home">
             <button class="close-btn">×</button>
             <h2 class="similar-text">Similar</h2>
+            <div class="gradient-bg"></div>
 
-            <div class="bubbles-container">
-                <div class="category-bubble small" data-category="light-scenes">
-                    <div class="bubble-content">
-                        <div class="bubble-icon">💡</div>
+            <div class="slider-container">
+                <div class="slider-track" id="sliderTrack">
+                    <div class="slider-item tiny" data-index="0">
+                        <img src="https://images.unsplash.com/photo-1682687220742-aba13b6e50ba?w=400&h=400&fit=crop" alt="Light Scenes">
                     </div>
-                </div>
 
-                <div class="category-bubble medium" data-category="music">
-                    <div class="bubble-content">
-                        <div class="bubble-icon">🌅</div>
+                    <div class="slider-item small" data-index="1">
+                        <img src="https://images.unsplash.com/photo-1682687221038-404cb8830901?w=400&h=400&fit=crop" alt="Music">
                     </div>
-                </div>
 
-                <div class="category-bubble large" data-category="stage-views">
-                    <div class="bubble-content">
-                        <div class="bubble-icon">🏖️</div>
+                    <div class="slider-item center" data-index="2">
+                        <img src="https://images.unsplash.com/photo-1682687220063-4742bd7fd538?w=600&h=600&fit=crop" alt="Stage Views">
+                        <span class="item-label">Stage Views</span>
                     </div>
-                </div>
 
-                <div class="category-bubble xlarge" data-category="stage-options">
-                    <div class="bubble-content">
-                        <div class="bubble-icon">🌈</div>
+                    <div class="slider-item small" data-index="3">
+                        <img src="https://images.unsplash.com/photo-1682687220801-eef408f95d71?w=400&h=400&fit=crop" alt="Stage Options">
                     </div>
-                </div>
 
-                <div class="category-bubble tiny" data-category="light-control">
-                    <div class="bubble-content">
-                        <div class="bubble-icon">🌸</div>
+                    <div class="slider-item tiny" data-index="4">
+                        <img src="https://images.unsplash.com/photo-1682687220067-dced9a881b56?w=400&h=400&fit=crop" alt="Light Control">
                     </div>
-                </div>
 
-                <div class="category-bubble medium" data-category="rider">
-                    <div class="bubble-content">
-                        <div class="bubble-icon">✨</div>
+                    <div class="slider-item tiny" data-index="5">
+                        <img src="https://images.unsplash.com/photo-1682687220923-c58b9a4592ae?w=400&h=400&fit=crop" alt="Rider">
                     </div>
                 </div>
             </div>

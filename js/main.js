@@ -828,6 +828,11 @@ class PalcoParametrico {
             }
         });
 
+        // Hide QR overlay when control page connects
+        this.syncManager.on('control-open', () => {
+            this.hideQrOverlay();
+        });
+
         // Atualizar painel de info quando cenas mudam
         this.updateInfoPanel();
     }
@@ -850,6 +855,8 @@ class PalcoParametrico {
                         document.getElementById('audio-status').textContent = 'ON';
                     }
                 }
+            } else if (data.type === 'control-open') {
+                this.hideQrOverlay();
             } else if (data.kind === 'scene') {
                 if (data.target === 'led') {
                     this.stageBuilder.setParam('ledEffect', data.action);
@@ -870,6 +877,13 @@ class PalcoParametrico {
                 }
             }
         });
+    }
+
+    hideQrOverlay() {
+        const overlay = document.getElementById('qr-overlay');
+        if (overlay) {
+            overlay.classList.add('hidden');
+        }
     }
 
     loadLaserScenes() {
