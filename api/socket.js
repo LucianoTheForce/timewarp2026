@@ -4,6 +4,11 @@ import { Server } from 'socket.io';
 let io;
 
 export default function handler(req, res) {
+    // Disable the default body parsing to allow the WebSocket upgrade
+    // when running on serverless platforms like Vercel.
+    // (Vercel/Next convention: export config alongside handler)
+    res.setHeader('Access-Control-Allow-Origin', '*');
+
     if (!res.socket.server.io) {
         console.log('Initializing Socket.io server...');
 
@@ -60,3 +65,10 @@ export default function handler(req, res) {
 
     res.end();
 }
+
+// Required for Socket.io upgrade on Vercel
+export const config = {
+    api: {
+        bodyParser: false
+    }
+};
