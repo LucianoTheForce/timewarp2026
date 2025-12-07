@@ -112,7 +112,7 @@ export class StageBuilder {
             railingsEnabled: true,
             stairsEnabled: true,
             risersEnabled: true,
-            lasersEnabled: false,
+            lasersEnabled: false, // desativado (usamos laserParty externo)
             railingHeight: 1.1,
             railingThickness: 0.04,
             stairsWidth: 2.0,
@@ -132,6 +132,8 @@ export class StageBuilder {
             laserAnimation: 'static', // static, sweep, rotate, pulse, chase, random
             laserSpeed: 1.0,
             stageLasersEnabled: true, // lasers no palco
+            stageLaserCount: 6,
+            laserAllTowers: true, // laser em todas as torres
             p5LightsEnabled: true, // luzes P5 nos cubos
             p5LightColor: 0xffffff,
             p5LightIntensity: 2.0,
@@ -170,6 +172,7 @@ export class StageBuilder {
             ledExternalColor: 0xff0000, // 16711680
             ledExternalIntensity: 6.0,
             hideRearPanels: true,
+            hideFirstLevelPanels: false,
 
             // LED effects
             ledEffect: 'wave',
@@ -582,10 +585,6 @@ export class StageBuilder {
 
         if (this.params.ledExternalEnabled) {
             this.buildLedExternalPanels();
-        }
-
-        if (this.params.lasersEnabled) {
-            this.buildLasers();
         }
 
         if (this.params.p5LightsEnabled) {
@@ -1286,8 +1285,8 @@ export class StageBuilder {
         // Lasers nas torres
         this.towersGroup.children.forEach((tower, idx) => {
             const towerIndex = tower.userData.towerIndex ?? idx;
-            // Uma torre sim, outra não
-            if (towerIndex % 2 !== 0) return;
+            // Se não for todas, alterna
+            if (!this.params.laserAllTowers && towerIndex % 2 !== 0) return;
 
             const box = new THREE.Box3().setFromObject(tower);
             if (!isFinite(box.max.y)) return;
@@ -1341,7 +1340,7 @@ export class StageBuilder {
             if (isFinite(scaffoldBox.min.x) && isFinite(scaffoldBox.max.x)) {
                 const scaffoldWidth = scaffoldBox.max.x - scaffoldBox.min.x;
                 const scaffoldHeight = scaffoldBox.max.y - this.params.deckHeight;
-                const laserCount = 6; // 6 lasers ao longo do palco
+                const laserCount = Math.max(1, this.params.stageLaserCount || 6); // lasers ao longo do palco
 
                 for (let i = 0; i < laserCount; i++) {
                     const colorMat = this.laserMaterial.clone();
@@ -1642,11 +1641,12 @@ export class StageBuilder {
 
             for (let face = 0; face < ledBoxTrussFaces; face++) {
                 const isBackFace = this.params.hideRearPanels && this.isRearFace(tower.position, face);
+                const faceAngle = angle + (face * Math.PI / 2);
+
+                // pano traseiro
                 if (isBackFace) {
-                    // pano cobrindo toda a face do truss
                     const clothGeom = new THREE.BoxGeometry(panelSize, totalHeight, 0.02);
                     const cloth = new THREE.Mesh(clothGeom, this.clothMaterial.clone());
-                    const faceAngle = angle + (face * Math.PI / 2);
                     cloth.position.copy(tower.position);
                     cloth.position.y = totalHeight / 2;
                     cloth.position.x += Math.cos(faceAngle) * panelOffset;
@@ -1657,8 +1657,26 @@ export class StageBuilder {
                     continue;
                 }
 
+                // pano até 2m e remoção dos painéis até 2m se opção ligada
+                const bandHeight = Math.min(2.0, totalHeight);
+                if (this.params.hideFirstLevelPanels && bandHeight > 0) {
+                    const clothGeom = new THREE.BoxGeometry(panelSize, bandHeight, 0.02);
+                    const cloth = new THREE.Mesh(clothGeom, this.clothMaterial.clone());
+                    cloth.position.copy(tower.position);
+                    cloth.position.y = bandHeight / 2;
+                    cloth.position.x += Math.cos(faceAngle) * panelOffset;
+                    cloth.position.z += Math.sin(faceAngle) * panelOffset;
+                    cloth.rotation.y = -faceAngle + Math.PI / 2;
+                    cloth.userData.type = 'cloth';
+                    this.ledGlassPanels.add(cloth);
+                }
+
                 for (let panelIndex = 0; panelIndex < ledBoxTrussPanelsPerFace; panelIndex++) {
                     const y = yPositions[panelIndex] ?? totalHeight / 2;
+
+                    // Remover painéis até 2m se opção ligada
+                    const panelTop = y + panelSize / 2;
+                    if (this.params.hideFirstLevelPanels && panelTop <= bandHeight + 0.001) continue;
 
                     const panelGeom = new THREE.BoxGeometry(panelSize, panelSize, 0.05);
 
@@ -1668,11 +1686,11 @@ export class StageBuilder {
                     panel.position.copy(tower.position);
                     panel.position.y = y;
 
-                    const faceAngle = angle + (face * Math.PI / 2);
-                    panel.position.x += Math.cos(faceAngle) * panelOffset;
-                    panel.position.z += Math.sin(faceAngle) * panelOffset;
+                    const faceAngleLocal = angle + (face * Math.PI / 2);
+                    panel.position.x += Math.cos(faceAngleLocal) * panelOffset;
+                    panel.position.z += Math.sin(faceAngleLocal) * panelOffset;
 
-                    panel.rotation.y = -faceAngle + Math.PI / 2;
+                    panel.rotation.y = -faceAngleLocal + Math.PI / 2;
 
                     panel.userData.towerIndex = towerIndex;
                     panel.userData.panelIndex = panelIndex;
@@ -1716,6 +1734,7 @@ export class StageBuilder {
 
         const colCount = Math.max(1, Math.min(ledExternalPanelsPerRow || 1, 2));
         const colSpacing = ledExternalWidth + 0.1;
+        const bandHeight = Math.min(2.0, totalHeight); // faixa até 2m
 
         this.towersGroup.children.forEach((tower, towerIndex) => {
             const angle = tower.userData.angle;
@@ -1739,9 +1758,31 @@ export class StageBuilder {
                     continue;
                 }
 
+                // Faixa de tecido preto até 2m cobrindo toda a face
+                if (this.params.hideFirstLevelPanels && bandHeight > 0) {
+                    const isXFace = face % 2 === 0; // 0:+X,2:-X
+                    const faceWidth = isXFace ? towerDepth : towerWidth;
+                    const offset = (isXFace ? towerWidth : towerDepth) / 2 + 0.05;
+                    const clothGeom = new THREE.BoxGeometry(faceWidth, bandHeight, 0.02);
+                    const cloth = new THREE.Mesh(clothGeom, this.clothMaterial.clone());
+                    const faceAngle = angle + (face * Math.PI / 2);
+                    cloth.position.copy(tower.position);
+                    cloth.position.y = bandHeight / 2;
+                    cloth.position.x += Math.cos(faceAngle) * offset;
+                    cloth.position.z += Math.sin(faceAngle) * offset;
+                    cloth.rotation.y = -faceAngle + Math.PI / 2;
+                    cloth.userData.type = 'cloth';
+                    this.ledGlassPanels.add(cloth);
+                }
+
                 for (let panelIndex = 0; panelIndex < ledExternalPanelsPerFace; panelIndex++) {
                     for (let col = 0; col < colCount; col++) {
                         const y = yPositions[panelIndex] ?? totalHeight / 2;
+                        // Remover painéis até 2m se habilitado
+                        const panelTop = y + ledExternalHeight / 2;
+                        if (this.params.hideFirstLevelPanels && panelTop <= bandHeight + 0.001) {
+                            continue;
+                        }
 
                         const panelGeom = new THREE.BoxGeometry(ledExternalWidth, ledExternalHeight, 0.05);
                         const faceAngle = angle + (face * Math.PI / 2);

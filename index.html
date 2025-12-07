@@ -630,6 +630,10 @@
             <input type="checkbox" id="hide-rear-panels" checked>
             <label>Remover LED traseiro (pano preto)</label>
         </div>
+        <div class="checkbox-group">
+            <input type="checkbox" id="hide-first-level">
+            <label>Remover LED do 1º andar (tecido preto)</label>
+        </div>
 
         <div class="control-group color-picker-wrapper">
             <label>Cor LED Externo</label>
@@ -704,6 +708,25 @@
         <div class="checkbox-group">
             <input type="checkbox" id="p5-enabled" checked>
             <label>Floods P5 Ativos</label>
+        </div>
+        <div class="checkbox-group">
+            <input type="checkbox" id="laser-all-towers" checked>
+            <label>Laser em todas as torres</label>
+        </div>
+        <div class="control-group">
+            <label>Qtd lasers no palco traseiro <span class="value-display" id="stage-laser-count-val">6</span></label>
+            <input type="range" id="stage-laser-count" min="1" max="20" value="6" step="1">
+        </div>
+        <div class="control-group">
+            <label>Salvar cena de laser</label>
+            <input type="text" id="laser-scene-name" placeholder="ex: Cena 1" style="width:100%; padding:8px; border-radius:6px; border:1px solid #333; background:#1a1a2e; color:#fff;">
+            <div style="display:flex; gap:8px; margin-top:8px;">
+                <button class="btn btn-secondary" id="laser-save">Salvar</button>
+                <button class="btn btn-secondary" id="laser-load">Carregar</button>
+                <button class="btn btn-secondary" id="laser-delete">Apagar</button>
+            </div>
+            <select id="laser-scene-list" style="width:100%; margin-top:8px; padding:8px; border-radius:6px; border:1px solid #333; background:#1a1a2e; color:#fff;">
+            </select>
         </div>
 
         <div class="section-divider"></div>

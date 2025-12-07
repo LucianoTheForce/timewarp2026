@@ -19,6 +19,8 @@ export class LaserController {
 
         this.lasers = [];
         this.lastSignature = '';
+        this.lastCompositeSignature = '';
+        this.lastCompositeSignature = '';
 
         this.variations = [
             { dx: 0, dz: 0, dy: 0 },
@@ -45,18 +47,30 @@ export class LaserController {
     setHue(hue) {
         this.options.hue = hue;
         this.lasers.forEach((laser) => { laser.hue = hue; });
+        this.resetSignatures();
     }
 
     setSpeed(speed) {
         this.options.speed = speed;
         this.lasers.forEach((laser) => { laser.speed = speed; });
         laserParty.globalAnimationSpeed = speed;
+        this.resetSignatures();
     }
 
     setPattern(index) {
         const idx = Math.max(0, Math.min(this.variations.length - 1, parseInt(index, 10) || 0));
         this.options.patternIndex = idx;
-        this.lastSignature = '';
+        this.resetSignatures();
+    }
+
+    setDistance(distance) {
+        this.options.distance = distance;
+        this.resetSignatures();
+    }
+
+    setThickness(thickness) {
+        this.options.thickness = thickness;
+        this.resetSignatures();
     }
 
     clear() {
@@ -68,41 +82,57 @@ export class LaserController {
         this.group.clear();
     }
 
-    signature(towersGroup) {
-        if (!towersGroup) return '';
-        const base = towersGroup.children.map((c) => `${c.position.x.toFixed(2)},${c.position.y.toFixed(2)},${c.position.z.toFixed(2)}`).join('|');
+    signature(groups) {
+        const arr = Array.isArray(groups) ? groups : [groups];
+        if (!arr.length) return '';
+        const base = arr
+            .filter(g => g && g.children)
+            .map(g => g.children.map((c) => `${c.position.x.toFixed(2)},${c.position.y.toFixed(2)},${c.position.z.toFixed(2)}`).join('|'))
+            .join('||');
         return `${base}|p${this.options.patternIndex}`;
     }
 
-    buildFromTowers(towersGroup) {
-        this.clear();
-        if (!this.enabled || !towersGroup) return;
+    buildForGroups(groups, mode = 'side') {
+        const arr = Array.isArray(groups) ? groups : [groups];
+        const validGroups = arr.filter(g => g && g.children && g.children.length > 0);
+        if (!this.enabled || validGroups.length === 0) return;
 
         const thickness = this.options.thickness;
         const hue = this.options.hue;
         const speed = this.options.speed;
         const variation = this.variations[this.options.patternIndex] || this.variations[0];
 
-        const centers = towersGroup.children.map((tower) => {
-            const box = new THREE.Box3().setFromObject(tower);
-            return { box, center: box.getCenter(new THREE.Vector3()) };
+        const centers = [];
+        validGroups.forEach((g) => {
+            g.children.forEach((tower) => {
+                const box = new THREE.Box3().setFromObject(tower);
+                centers.push({ box, center: box.getCenter(new THREE.Vector3()) });
+            });
         });
 
-        const total = centers.length;
+        const forwardDist = this.options.distance || 40;
 
-        centers.forEach((entry, idx) => {
+        centers.forEach((entry) => {
             const { box, center } = entry;
             if (!isFinite(box.max.y)) return;
             const baseY = box.max.y;
 
-            const oppositeIdx = total - 1 - idx;
-            const targetEntry = centers[oppositeIdx] || entry;
-            const targetCenter = targetEntry.center.clone();
-            targetCenter.y = targetEntry.box.max.y * 0.7;
-            targetCenter.x += variation.dx;
-            targetCenter.y += variation.dy;
-            targetCenter.z += variation.dz;
-            const distance = center.distanceTo(targetCenter) + 2;
+            const targetCenter = center.clone();
+            if (mode === 'side') {
+                // Torres: apontar lateralmente para o lado oposto
+                const isLeft = center.x < 0;
+                const dirX = isLeft ? +1 : -1;
+                targetCenter.x += dirX * forwardDist;
+                targetCenter.y = baseY + variation.dy;
+                targetCenter.z += variation.dz;
+            } else {
+                // Frente: apontar para +Z
+                targetCenter.x += variation.dx;
+                targetCenter.y = baseY + variation.dy;
+                targetCenter.z += forwardDist + variation.dz;
+            }
+
+            const distance = forwardDist;
 
             const createLaser = (angleX = 0, angleY = 0) => {
                 const laser = laserParty.new({
@@ -131,16 +161,39 @@ export class LaserController {
         });
     }
 
-    update(towersGroup) {
-        const sig = this.signature(towersGroup);
-        if (sig !== this.lastSignature) {
-            this.lastSignature = sig;
-            this.buildFromTowers(towersGroup);
+    updateComposite(configs) {
+        const cfgs = Array.isArray(configs) ? configs : [];
+        const sig = cfgs.map(cfg => `${this.signature(cfg.groups)}|m${cfg.mode || 'side'}`).join('||');
+        if (sig !== this.lastCompositeSignature) {
+            this.lastCompositeSignature = sig;
+            this.clear();
+            cfgs.forEach(cfg => {
+                this.buildForGroups(cfg.groups, cfg.mode || 'side');
+            });
         }
 
         if (this.enabled) {
             laserParty.globalAnimationSpeed = this.options.speed;
             laserParty.updateAll();
         }
+    }
+
+    getOptions() {
+        return { ...this.options, enabled: this.enabled };
+    }
+
+    applyOptions(opts = {}) {
+        if (typeof opts.enabled === 'boolean') this.setEnabled(opts.enabled);
+        if (typeof opts.hue === 'number') this.setHue(opts.hue);
+        if (typeof opts.speed === 'number') this.setSpeed(opts.speed);
+        if (typeof opts.patternIndex === 'number') this.setPattern(opts.patternIndex);
+        if (typeof opts.distance === 'number') this.setDistance(opts.distance);
+        if (typeof opts.thickness === 'number') this.setThickness(opts.thickness);
+        this.resetSignatures();
+    }
+
+    resetSignatures() {
+        this.lastSignature = '';
+        this.lastCompositeSignature = '';
     }
 }

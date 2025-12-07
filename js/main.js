@@ -427,6 +427,88 @@ class PalcoParametrico {
             });
         }
 
+        const hideFirstLevel = document.getElementById('hide-first-level');
+        if (hideFirstLevel) {
+            hideFirstLevel.checked = this.stageBuilder.params.hideFirstLevelPanels;
+            hideFirstLevel.addEventListener('change', (e) => {
+                this.stageBuilder.setParam('hideFirstLevelPanels', e.target.checked);
+            });
+        }
+
+        const lasersEnabled = document.getElementById('lasers-enabled');
+        if (lasersEnabled) {
+            lasersEnabled.checked = this.laserController.enabled;
+            lasersEnabled.addEventListener('change', (e) => {
+                this.laserController.setEnabled(e.target.checked);
+            });
+        }
+
+        const p5Enabled = document.getElementById('p5-enabled');
+        if (p5Enabled) {
+            p5Enabled.checked = this.stageBuilder.params.p5LightsEnabled;
+            p5Enabled.addEventListener('change', (e) => {
+                this.stageBuilder.setParam('p5LightsEnabled', e.target.checked);
+            });
+        }
+
+        const laserAllTowers = document.getElementById('laser-all-towers');
+        if (laserAllTowers) {
+            laserAllTowers.checked = this.stageBuilder.params.laserAllTowers;
+            laserAllTowers.addEventListener('change', (e) => {
+                this.stageBuilder.setParam('laserAllTowers', e.target.checked);
+            });
+        }
+
+        this.setupSlider('stage-laser-count', 'stage-laser-count-val', (value) => {
+            this.stageBuilder.setParam('stageLaserCount', parseInt(value));
+        });
+
+        // Laser scenes (salvar/carregar/apagar)
+        this.laserScenes = this.loadLaserScenes();
+        this.refreshLaserSceneList();
+
+        const laserSave = document.getElementById('laser-save');
+        const laserLoad = document.getElementById('laser-load');
+        const laserDelete = document.getElementById('laser-delete');
+        const laserName = document.getElementById('laser-scene-name');
+        const laserList = document.getElementById('laser-scene-list');
+
+        const getSelectedKey = () => laserList?.value || '';
+
+        if (laserSave) {
+            laserSave.addEventListener('click', () => {
+                const name = (laserName?.value || '').trim() || 'Cena';
+                const key = name.toLowerCase().replace(/\\s+/g, '-');
+                const current = this.laserController.getOptions();
+                this.laserScenes[key] = { name, options: current };
+                this.storeLaserScenes();
+                this.refreshLaserSceneList(key);
+            });
+        }
+
+        if (laserLoad) {
+            laserLoad.addEventListener('click', () => {
+                const key = getSelectedKey();
+                const scene = this.laserScenes[key];
+                if (scene) {
+                    this.laserController.applyOptions(scene.options);
+                    if (lasersEnabled) lasersEnabled.checked = scene.options.enabled;
+                    this.laserController.resetSignatures();
+                }
+            });
+        }
+
+        if (laserDelete) {
+            laserDelete.addEventListener('click', () => {
+                const key = getSelectedKey();
+                if (key && this.laserScenes[key]) {
+                    delete this.laserScenes[key];
+                    this.storeLaserScenes();
+                    this.refreshLaserSceneList();
+                }
+            });
+        }
+
         const autoRotateCheck = document.getElementById('auto-rotate');
         if (autoRotateCheck) {
             autoRotateCheck.addEventListener('change', (e) => {
@@ -644,6 +726,38 @@ class PalcoParametrico {
         });
     }
 
+    loadLaserScenes() {
+        try {
+            const raw = localStorage.getItem('laserScenes');
+            if (!raw) return {};
+            return JSON.parse(raw);
+        } catch (e) {
+            console.warn('Falha ao carregar laserScenes', e);
+            return {};
+        }
+    }
+
+    storeLaserScenes() {
+        try {
+            localStorage.setItem('laserScenes', JSON.stringify(this.laserScenes));
+        } catch (e) {
+            console.warn('Falha ao salvar laserScenes', e);
+        }
+    }
+
+    refreshLaserSceneList(selectKey = '') {
+        const list = document.getElementById('laser-scene-list');
+        if (!list) return;
+        list.innerHTML = '';
+        Object.entries(this.laserScenes).forEach(([key, value]) => {
+            const opt = document.createElement('option');
+            opt.value = key;
+            opt.textContent = value.name || key;
+            if (selectKey && key === selectKey) opt.selected = true;
+            list.appendChild(opt);
+        });
+    }
+
     updateInfoPanel() {
         if (!this.stageBuilder) return;
         const info = this.stageBuilder.getStats();
@@ -812,7 +926,29 @@ class PalcoParametrico {
 
         // Update stage builder (LED animations)
         this.stageBuilder.update(delta);
-        this.laserController.update(this.stageBuilder.towersGroup);
+
+        // Lasers: selecionar torres conforme opção e limitar quantidade na traseira
+        const towerChildren = this.stageBuilder.towersGroup.children;
+        const filteredTowers = this.stageBuilder.params.laserAllTowers
+            ? towerChildren
+            : towerChildren.filter((_, i) => i % 2 === 0); // uma torre sim, outra não
+
+        const backChildren = this.stageBuilder.backScaffoldGroup.children;
+        let backSelected = backChildren;
+        const desiredBack = Math.max(1, Math.min(this.stageBuilder.params.stageLaserCount || backChildren.length, backChildren.length));
+        if (backChildren.length > desiredBack) {
+            const step = backChildren.length / desiredBack;
+            backSelected = [];
+            for (let i = 0; i < desiredBack; i++) {
+                const idx = Math.floor(i * step);
+                backSelected.push(backChildren[idx]);
+            }
+        }
+
+        this.laserController.updateComposite([
+            { groups: { children: filteredTowers }, mode: 'side' },
+            { groups: { children: backSelected }, mode: 'forward' }
+        ]);
 
         // Update lighting
         this.lightingSystem.update(delta);
