@@ -984,6 +984,13 @@ class PalcoParametrico {
                 }
             }
         }
+
+        // Permitir abrir o controle no desktop ao clicar no QR
+        canvas.style.cursor = 'pointer';
+        canvas.title = 'Abrir controle remoto';
+        canvas.onclick = () => {
+            window.open(url, '_blank');
+        };
     }
 
     createSunsetSky() {
