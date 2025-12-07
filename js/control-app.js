@@ -25,6 +25,45 @@ class ControlApp {
 
         // FPS Counter
         this.startFPSCounter();
+
+        // Notify desktop that control page is open
+        this.notifyControlOpen();
+    }
+
+    notifyControlOpen() {
+        const payload = JSON.stringify({ type: 'control-open', data: { ts: Date.now() } });
+
+        // Fire-and-forget beacon
+        try {
+            const blob = new Blob([payload], { type: 'application/json' });
+            navigator.sendBeacon('/api/emit', blob);
+        } catch (e) {
+            // ignore
+        }
+
+        // Upstash relay
+        fetch('/api/emit', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: payload,
+            keepalive: true,
+            cache: 'no-store'
+        }).catch(() => {});
+
+        // Local broadcast (same device)
+        try {
+            const bc = new BroadcastChannel('palco-control');
+            bc.postMessage({ type: 'control-open' });
+        } catch (e) {
+            /* ignore */
+        }
+
+        // postMessage to opener/parent if exists
+        if (window.opener) {
+            window.opener.postMessage({ type: 'control-open' }, '*');
+        } else if (window.parent !== window) {
+            window.parent.postMessage({ type: 'control-open' }, '*');
+        }
     }
 
     initBackground() {
