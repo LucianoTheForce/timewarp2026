@@ -84,15 +84,22 @@ export class AudioSystem {
 
         const musicFolder = './assets/musicas/';
 
-        // Default tracks (user should add their own music files)
-        // Inclui um tom interno base64 para garantir que sempre exista algo para tocar
+        // Inclui um tom interno base64 como fallback
         const builtInTone = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEAIlYAAESsAAACABAAZGF0YQAAAAA=';
+
+        // Listagem manual das faixas enviadas
+        const library = [
+            { name: 'Sascha Funke - MZ', file: '10 Sascha Funke - MZ.mp3' },
+            { name: 'Mark Alow - Trip To The Lonely Planet', file: '208. Mark Alow - Trip To The Lonely Planet.mp3' },
+            { name: 'Disclosure - You & Me (Rivo Extended)', file: 'Disclosure & Eliza Doolittle - You & Me (Rivo Extended Mix).mp3' },
+        ];
 
         this.musicFiles = [
             { name: 'Demo Tone', url: builtInTone },
-            { name: 'Track 1', url: musicFolder + 'track1.mp3' },
-            { name: 'Track 2', url: musicFolder + 'track2.mp3' },
-            { name: 'Track 3', url: musicFolder + 'track3.mp3' },
+            ...library.map((t) => ({
+                name: t.name,
+                url: musicFolder + encodeURIComponent(t.file)
+            })),
         ];
 
         return this.musicFiles;

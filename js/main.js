@@ -822,16 +822,16 @@ class PalcoParametrico {
             switch (data.action) {
                 case 'play':
                     this.audioSystem.play();
-                    document.getElementById('audio-status').textContent = 'ON';
+                    this.updateAudioStatus(true);
                     break;
                 case 'pause':
                     this.audioSystem.pause();
-                    document.getElementById('audio-status').textContent = 'OFF';
+                    this.updateAudioStatus(false);
                     break;
                 case 'track':
                     this.audioSystem.loadTrack(data.data);
                     this.audioSystem.play();
-                    document.getElementById('audio-status').textContent = 'ON';
+                    this.updateAudioStatus(true);
                     break;
             }
         });
@@ -859,10 +859,10 @@ class PalcoParametrico {
                 if (data.action === 'toggle') {
                     if (this.audioSystem.isPlaying) {
                         this.audioSystem.pause();
-                        document.getElementById('audio-status').textContent = 'OFF';
+                        this.updateAudioStatus(false);
                     } else {
                         this.audioSystem.play();
-                        document.getElementById('audio-status').textContent = 'ON';
+                        this.updateAudioStatus(true);
                     }
                 }
             } else if (data.type === 'control-open') {
@@ -878,14 +878,14 @@ class PalcoParametrico {
             } else if (data.kind === 'music') {
                 if (data.action === 'play') {
                     this.audioSystem.play();
-                    document.getElementById('audio-status').textContent = 'ON';
+                    this.updateAudioStatus(true);
                 } else if (data.action === 'pause') {
                     this.audioSystem.pause();
-                    document.getElementById('audio-status').textContent = 'OFF';
+                    this.updateAudioStatus(false);
                 } else if (data.action === 'track' && data.data) {
                     this.audioSystem.loadTrack(data.data);
                     this.audioSystem.play();
-                    document.getElementById('audio-status').textContent = 'ON';
+                    this.updateAudioStatus(true);
                 }
             }
         });
@@ -1138,6 +1138,13 @@ class PalcoParametrico {
             this.audioPrompt.parentNode.removeChild(this.audioPrompt);
         }
         this.audioPrompt = null;
+    }
+
+    updateAudioStatus(isOn) {
+        const el = document.getElementById('audio-status');
+        if (el) {
+            el.textContent = isOn ? 'ON' : 'OFF';
+        }
     }
 
     createSunsetSky() {
