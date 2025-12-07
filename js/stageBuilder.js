@@ -49,6 +49,10 @@ export class StageBuilder {
         this.p5LightsGroup.name = 'p5Lights';
         this.scene.add(this.p5LightsGroup);
 
+        this.p5PanelsGroup = new THREE.Group();
+        this.p5PanelsGroup.name = 'p5Panels';
+        this.scene.add(this.p5PanelsGroup);
+
         this.crowdGroup = new THREE.Group();
         this.crowdGroup.name = 'crowd';
         this.scene.add(this.crowdGroup);
@@ -131,7 +135,8 @@ export class StageBuilder {
             stageBandEndHeight: 6.3,   // altura alvo máxima
             laserHeight: 20,
             laserColor: 0x00ff00,
-            laserAnimation: 'static', // static, sweep, rotate, pulse, chase, random
+            laserAnimation: 'laser-wave', // static, sweep, rotate, pulse, chase, random, laser-wave, audio-sync
+            laserWaveMode: 'center-out', // center-out, edges-in, left-right, right-left
             laserSpeed: 1.0,
             stageLasersEnabled: true, // lasers no palco
             stageLaserCount: 20,
@@ -139,6 +144,12 @@ export class StageBuilder {
             p5LightsEnabled: true, // luzes P5 nos cubos
             p5LightColor: 0xffffff,
             p5LightIntensity: 2.0,
+            p5PanelsEnabled: true,
+            p5PanelsX: 4,
+            p5PanelsY: 4,
+            p5PanelsStart: 0.5,
+            p5PanelsEnd: 6.0,
+            p5PanelColor: 0xffffff,
 
             // Crowd (público)
             crowdEnabled: true,
@@ -458,6 +469,18 @@ export class StageBuilder {
             });
         } else if (key === 'laserAnimation' || key === 'laserSpeed') {
             // Não precisa rebuild, apenas atualiza na animação
+            if (key === 'laserAnimation') this.params.laserAnimation = value;
+            if (key === 'laserSpeed') this.params.laserSpeed = value;
+        } else if (key === 'laserWaveMode') {
+            this.params.laserWaveMode = value;
+        } else if (key === 'p5PanelColor') {
+            this.params.p5PanelColor = value;
+            this.p5Panels.forEach((panel) => {
+                if (panel.material) {
+                    panel.material.emissive.setHex(value);
+                    panel.material.color.setHex(0x111111);
+                }
+            });
         } else if (key === 'crowdColor') {
             // Atualizar cor do público dinamicamente
             if (this.crowdInstances && this.crowdInstances.material) {
@@ -550,6 +573,7 @@ export class StageBuilder {
         this.clearStageSkirts();
         this.clearCrowdBarrier();
         this.allLedPanels = [];
+        this.p5Panels = [];
         this.stageDeck.position.set(0, 0, 0);
 
         this.buildTowers();
@@ -591,6 +615,12 @@ export class StageBuilder {
 
         if (this.params.p5LightsEnabled) {
             this.buildP5Lights();
+        }
+
+        if (this.params.p5PanelsEnabled) {
+            this.buildP5Panels();
+        } else {
+            this.clearP5Panels();
         }
 
         if (this.params.crowdEnabled) {
@@ -753,6 +783,18 @@ export class StageBuilder {
             if (child.material && !child.material.isShaderMaterial) child.material.dispose();
             this.lasersGroup.remove(child);
         }
+    }
+
+    clearP5Panels() {
+        while (this.p5PanelsGroup.children.length > 0) {
+            const child = this.p5PanelsGroup.children[0];
+            if (child.geometry) child.geometry.dispose();
+            if (child.material) child.material.dispose();
+            this.p5PanelsGroup.remove(child);
+        }
+        this.p5Panels = [];
+        // Remover do allLedPanels
+        this.allLedPanels = this.allLedPanels.filter(p => p.userData.type !== 'p5Panel');
     }
 
     clearRisers() {
@@ -2108,9 +2150,9 @@ export class StageBuilder {
                     break;
 
                 case 'audio-reactive':
-                    // Audio reactive - reage ao volume geral
-                    const audioIntensity = this.audioData.volume * 0.8 + 0.2;
-                    const audioHue = (this.audioData.bass * 0.3 + this.time * 0.1) % 1;
+                    // Audio reactive - graves controlam intensidade
+                    const audioIntensity = this.audioData.bass * 0.9 + 0.1;
+                    const audioHue = (this.audioData.bass * 0.4 + this.time * 0.1) % 1;
                     panel.material.emissive.setHSL(audioHue, 0.9, 0.5);
                     panel.material.emissiveIntensity = baseIntensity * audioIntensity;
 
@@ -2145,8 +2187,74 @@ export class StageBuilder {
         // Animações de lasers
         this.updateLaserAnimations();
 
+        // P5 painéis (médios)
+        this.updateP5Panels();
+
         // Animação do público
         this.updateCrowdAnimation();
+    }
+
+    updateP5Panels() {
+        const mid = this.audioData.mid;
+        this.p5Panels.forEach((panel) => {
+            if (!panel.material) return;
+            const baseIntensity = panel.userData.baseIntensity || 2.0;
+            panel.material.emissiveIntensity = baseIntensity * (0.4 + mid * 1.6);
+        });
+    }
+
+    buildP5Panels() {
+        this.clearP5Panels();
+        if (!this.params.p5PanelsEnabled) return;
+
+        const color = new THREE.Color(this.params.p5PanelColor);
+        const baseIntensity = 2.0;
+        const panelMat = new THREE.MeshStandardMaterial({
+            color: 0x111111,
+            emissive: color,
+            emissiveIntensity: baseIntensity,
+            roughness: 0.4,
+            metalness: 0.2,
+            side: THREE.FrontSide
+        });
+
+        const moduleW = 0.5;
+        const moduleH = 0.5;
+        const geom = new THREE.PlaneGeometry(moduleW, moduleH);
+
+        const targets = [...this.towersGroup.children, ...this.backScaffoldGroup.children];
+        targets.forEach((tower) => {
+            const box = new THREE.Box3().setFromObject(tower);
+            if (!isFinite(box.min.y)) return;
+
+            const yStart = Math.max(box.min.y, this.params.p5PanelsStart);
+            const yEnd = Math.min(box.max.y, this.params.p5PanelsEnd);
+            if (yEnd <= yStart) return;
+
+            const countX = Math.max(1, Math.round(this.params.p5PanelsX));
+            const countY = Math.max(1, Math.round(this.params.p5PanelsY));
+
+            const faceWidth = this.params.towerWidth || (box.max.x - box.min.x);
+            const xStart = box.min.x + moduleW / 2;
+            const xStep = faceWidth / countX;
+            const yStep = (yEnd - yStart) / countY;
+            const faceZ = box.max.z + 0.02; // face frontal voltada ao público
+
+            for (let ix = 0; ix < countX; ix++) {
+                for (let iy = 0; iy < countY; iy++) {
+                    const px = xStart + ix * xStep;
+                    const py = yStart + iy * yStep;
+                    const mesh = new THREE.Mesh(geom.clone(), panelMat.clone());
+                    mesh.position.set(px, py, faceZ);
+                    mesh.rotation.y = 0;
+                    mesh.userData.type = 'p5Panel';
+                    mesh.userData.baseIntensity = baseIntensity;
+                    this.p5PanelsGroup.add(mesh);
+                    this.p5Panels.push(mesh);
+                    this.allLedPanels.push(mesh);
+                }
+            }
+        });
     }
 
     buildP5Lights() {
@@ -2172,7 +2280,7 @@ export class StageBuilder {
             roughness: 0.4
         });
 
-        // Adicionar P5 nas torres
+        // Adicionar P5 no box truss central das torres (meia altura)
         this.towersGroup.children.forEach((tower) => {
             const box = new THREE.Box3().setFromObject(tower);
             if (!isFinite(box.min.y)) return;
@@ -2180,10 +2288,11 @@ export class StageBuilder {
             const towerHeight = box.max.y - box.min.y;
             const centerX = (box.min.x + box.max.x) / 2;
             const centerZ = (box.min.z + box.max.z) / 2;
+            const midHeight = towerHeight * 0.5;
 
             const p5Geom = new THREE.BoxGeometry(p5Size, p5Size, p5Size);
             const p5Mesh = new THREE.Mesh(p5Geom, p5Material.clone());
-            p5Mesh.position.set(centerX, towerHeight * 0.6, centerZ);
+            p5Mesh.position.set(centerX, midHeight, centerZ);
             p5Mesh.userData.type = 'p5Light';
             this.p5LightsGroup.add(p5Mesh);
         });
@@ -2435,6 +2544,26 @@ export class StageBuilder {
                     laser.material.opacity = strobeOn === 0 ? 0.8 : 0.1;
                     break;
 
+                case 'laser-wave':
+                    // Onda direcionada com variações
+                    const mode = this.params.laserWaveMode || 'center-out';
+                    const posX = laser.position.x;
+                    const normX = Math.max(-1, Math.min(1, posX / 40)); // normalizar por largura aproximada
+                    let phase = 0;
+                    if (mode === 'right-left') {
+                        phase = t * 2 - normX * 3;
+                    } else if (mode === 'left-right') {
+                        phase = t * 2 + normX * 3;
+                    } else if (mode === 'center-out') {
+                        phase = t * 2 + Math.abs(normX) * 4;
+                    } else if (mode === 'edges-in') {
+                        phase = t * 2 - Math.abs(normX) * 4;
+                    }
+                    const wave = (Math.sin(phase) + 1) / 2;
+                    const treble = this.audioData.treble;
+                    laser.material.opacity = 0.2 + wave * 0.6 + treble * 0.2;
+                    break;
+
                 case 'stage-sweep':
                     // Varredura específica do palco
                     if (laserType === 'stage-vertical' || laserType === 'stage-diagonal') {
@@ -2447,13 +2576,13 @@ export class StageBuilder {
                     break;
 
                 case 'audio-sync':
-                    // Audio reactive - sincronizado com volume
-                    const audioOpacity = 0.3 + this.audioData.volume * 0.6;
+                    // Audio reactive - agudos (treble) nos lasers
+                    const audioOpacity = 0.2 + this.audioData.treble * 0.8;
                     laser.material.opacity = audioOpacity;
 
                     // Rotação baseada nos médios
                     if (laserType === 'vertical' || laserType === 'stage-vertical') {
-                        laser.rotation.y = this.audioData.mid * Math.PI * 2;
+                        laser.rotation.y = this.audioData.treble * Math.PI * 2;
                     } else if (laserType === 'horizontal' || laserType === 'stage-diagonal') {
                         const sweepAmount = this.audioData.treble * Math.PI / 2;
                         laser.rotation.y = Math.sin(t + this.audioData.bass * 5) * sweepAmount;
@@ -2482,6 +2611,7 @@ export class StageBuilder {
                     break;
 
                 case 'static':
+                case 'laser-wave':
                 default:
                     laser.material.opacity = 0.65;
                     break;
