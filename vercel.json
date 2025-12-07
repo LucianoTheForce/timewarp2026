@@ -1,0 +1,13 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/socket",
+      "destination": "/api/socket.js"
+    }
+  ],
+  "functions": {
+    "api/**/*.js": {
+      "runtime": "@vercel/node@2"
+    }
+  }
+}

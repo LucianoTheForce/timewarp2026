@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Palco Timewarp - Controle</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #05050a;
+            color: #fff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            padding: 12px;
+        }
+        #control-interface {
+            position: relative;
+            display: grid;
+            grid-template-columns: repeat(2, minmax(200px, 1fr));
+            gap: 12px;
+            padding: 16px;
+            background: rgba(0, 0, 0, 0.9);
+            border-radius: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(10px);
+            width: min(900px, 98vw);
+            max-height: 95vh;
+            overflow-y: auto;
+        }
+        @media (max-width: 640px) {
+            #control-interface { grid-template-columns: 1fr; }
+        }
+        .control-panel {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.07);
+            border-radius: 12px;
+            padding: 12px;
+        }
+        .control-panel h3 {
+            margin-bottom: 8px;
+            font-size: 14px;
+            letter-spacing: 0.5px;
+            color: #ff6b6b;
+        }
+        .camera-arrows {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 6px;
+        }
+        .arrow-btn, .control-btn, .scene-btn, .play-pause-btn, .track-btn {
+            border: none;
+            border-radius: 10px;
+            padding: 10px;
+            color: #fff;
+            background: linear-gradient(135deg, #ff6b6b, #ff8e53);
+            cursor: pointer;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .arrow-btn.empty { background: transparent; cursor: default; }
+        .arrow-btn.secondary, .control-btn.secondary, .scene-btn.secondary, .play-pause-btn.secondary {
+            background: linear-gradient(135deg, #4ecdc4, #44a08d);
+        }
+        .arrow-btn.tertiary, .control-btn.tertiary {
+            background: linear-gradient(135deg, #5f72be, #9b23ea);
+        }
+        .scene-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0,1fr));
+            gap: 8px;
+        }
+        .scene-btn.active { box-shadow: 0 0 0 2px rgba(255,255,255,0.25); }
+        .music-controls { display: flex; gap: 8px; margin-bottom: 8px; }
+        .music-list { display: grid; gap: 6px; max-height: 220px; overflow-y: auto; }
+        .track-btn.active { box-shadow: 0 0 0 2px rgba(78,205,196,0.6); }
+    </style>
+</head>
+<body>
+    <div id="control-interface">
+        <!-- Camera -->
+        <div class="control-panel">
+            <h3>Camera</h3>
+            <div class="camera-arrows">
+                <div class="arrow-btn empty"></div>
+                <button class="arrow-btn" id="cam-forward">↑</button>
+                <div class="arrow-btn empty"></div>
+
+                <button class="arrow-btn" id="cam-left">←</button>
+                <button class="arrow-btn tertiary" id="cam-reset">Reset</button>
+                <button class="arrow-btn" id="cam-right">→</button>
+
+                <div class="arrow-btn empty"></div>
+                <button class="arrow-btn" id="cam-backward">↓</button>
+                <div class="arrow-btn empty"></div>
+            </div>
+            <div style="display:flex; gap:8px; margin-top:8px;">
+                <button class="control-btn secondary" id="cam-up">Up</button>
+                <button class="control-btn secondary" id="cam-down">Down</button>
+                <button class="control-btn tertiary" id="cam-auto-toggle">Auto</button>
+            </div>
+        </div>
+
+        <!-- LED scenes -->
+        <div class="control-panel">
+            <h3>Cenas LED</h3>
+            <div class="scene-grid" id="led-scenes">
+                <button class="scene-btn" data-scene="wave">Onda</button>
+                <button class="scene-btn" data-scene="pulse">Pulse</button>
+                <button class="scene-btn" data-scene="rainbow">Rainbow</button>
+                <button class="scene-btn" data-scene="strobe">Strobe</button>
+                <button class="scene-btn" data-scene="fire">Fogo</button>
+                <button class="scene-btn" data-scene="matrix-rain">Matrix</button>
+                <button class="scene-btn active" data-scene="audio-reactive">Audio</button>
+                <button class="scene-btn" data-scene="audio-bass">Bass</button>
+                <button class="scene-btn" data-scene="solid">Sólida</button>
+            </div>
+        </div>
+
+        <!-- Light/lasers scenes -->
+        <div class="control-panel">
+            <h3>Luzes & Lasers</h3>
+            <div class="scene-grid" id="light-scenes">
+                <button class="scene-btn" data-scene="static">Estático</button>
+                <button class="scene-btn" data-scene="sweep">Sweep</button>
+                <button class="scene-btn" data-scene="rotate">Rotação</button>
+                <button class="scene-btn" data-scene="chase">Chase</button>
+                <button class="scene-btn" data-scene="random">Random</button>
+                <button class="scene-btn" data-scene="strobe-laser">Strobe</button>
+                <button class="scene-btn active" data-scene="audio-sync">Sync</button>
+                <button class="scene-btn" data-scene="audio-kick">Kick</button>
+            </div>
+        </div>
+
+        <!-- Music -->
+        <div class="control-panel">
+            <h3>Música</h3>
+            <div class="music-controls">
+                <button class="play-pause-btn secondary" id="music-play">Play</button>
+                <button class="play-pause-btn secondary" id="music-pause">Pause</button>
+            </div>
+            <div class="music-list" id="music-tracks">
+                <!-- preenchido por JS -->
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+        import { SyncManager } from './js/syncManager.js';
+
+        class ControlPage {
+            constructor() {
+                this.syncManager = new SyncManager();
+                this.init();
+            }
+
+            async init() {
+                await this.syncManager.connect();
+                this.bindButtons();
+            }
+
+            send(action) {
+                if (this.syncManager && this.syncManager.connected) {
+                    this.syncManager.sendCameraControl(action);
+                }
+                if (window.opener) {
+                    window.opener.postMessage({ type: 'control-action', kind: 'camera', action }, window.location.origin);
+                }
+            }
+
+            bindButtons() {
+                const map = {
+                    'cam-forward': 'forward',
+                    'cam-backward': 'backward',
+                    'cam-left': 'left',
+                    'cam-right': 'right',
+                    'cam-up': 'up',
+                    'cam-down': 'down',
+                    'cam-reset': 'reset'
+                };
+                Object.entries(map).forEach(([id, action]) => {
+                    const btn = document.getElementById(id);
+                    if (btn) btn.addEventListener('click', () => this.send(action));
+                });
+
+                const autoBtn = document.getElementById('cam-auto-toggle');
+                if (autoBtn) {
+                    autoBtn.addEventListener('click', () => this.send('auto-rotate'));
+                }
+
+                const toggle = document.getElementById('toggle-play');
+                if (toggle) {
+                    toggle.addEventListener('click', () => {
+                        if (this.syncManager && this.syncManager.connected) {
+                            this.syncManager.sendMusicControl('play');
+                        }
+                        if (window.opener) {
+                            window.opener.postMessage({ type: 'control-action', kind: 'playback', action: 'toggle' }, window.location.origin);
+                        }
+                    });
+                }
+
+                // LED scenes
+                const ledBtns = document.querySelectorAll('#led-scenes .scene-btn');
+                ledBtns.forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const scene = btn.dataset.scene;
+                        ledBtns.forEach(b => b.classList.toggle('active', b === btn));
+                        if (this.syncManager && this.syncManager.connected) this.syncManager.sendLedScene(scene);
+                        if (window.opener) window.opener.postMessage({ type: 'control-action', kind: 'scene', target: 'led', action: scene }, window.location.origin);
+                    });
+                });
+
+                // Light scenes
+                const lightBtns = document.querySelectorAll('#light-scenes .scene-btn');
+                lightBtns.forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const scene = btn.dataset.scene;
+                        lightBtns.forEach(b => b.classList.toggle('active', b === btn));
+                        if (this.syncManager && this.syncManager.connected) this.syncManager.sendLightScene(scene);
+                        if (window.opener) window.opener.postMessage({ type: 'control-action', kind: 'scene', target: 'light', action: scene }, window.location.origin);
+                    });
+                });
+
+                // Music controls
+                const playBtn = document.getElementById('music-play');
+                const pauseBtn = document.getElementById('music-pause');
+                if (playBtn) playBtn.addEventListener('click', () => this.sendMusic('play'));
+                if (pauseBtn) pauseBtn.addEventListener('click', () => this.sendMusic('pause'));
+
+                this.populateTracks();
+            }
+
+            sendMusic(action, data) {
+                if (this.syncManager && this.syncManager.connected) {
+                    this.syncManager.sendMusicControl(action, data);
+                }
+                if (window.opener) {
+                    window.opener.postMessage({ type: 'control-action', kind: 'music', action, data }, window.location.origin);
+                }
+            }
+
+            populateTracks() {
+                const list = document.getElementById('music-tracks');
+                if (!list) return;
+                const tracks = [
+                    { name: 'Sascha Funke - MZ', url: './assets/musicas/10 Sascha Funke - MZ.mp3' },
+                    { name: 'Mark Alow - Trip To The Lonely Planet', url: './assets/musicas/208. Mark Alow - Trip To The Lonely Planet.mp3' },
+                    { name: 'Disclosure - You & Me (Rivo Extended)', url: './assets/musicas/Disclosure & Eliza Doolittle - You & Me (Rivo Extended Mix).mp3' },
+                ];
+                tracks.forEach(track => {
+                    const btn = document.createElement('button');
+                    btn.className = 'track-btn secondary';
+                    btn.textContent = track.name;
+                    btn.addEventListener('click', () => {
+                        list.querySelectorAll('.track-btn').forEach(b => b.classList.remove('active'));
+                        btn.classList.add('active');
+                        this.sendMusic('track', track.url);
+                    });
+                    list.appendChild(btn);
+                });
+            }
+        }
+
+        new ControlPage();
+    </script>
+</body>
+</html>

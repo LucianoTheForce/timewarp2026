@@ -5,6 +5,7 @@ import { StageBuilder } from './stageBuilder.js';
 import { LightingSystem } from './lightingSystem.js';
 import { LaserController } from './laserController.js';
 import { AudioSystem } from './audioSystem.js';
+import { SyncManager } from './syncManager.js';
 
 class PalcoParametrico {
     constructor() {
@@ -16,6 +17,7 @@ class PalcoParametrico {
         this.lightingSystem = null;
         this.laserController = null;
         this.audioSystem = null;
+        this.syncManager = null;
         this.glbModel = null;
         this.clock = new THREE.Clock();
 
@@ -90,14 +92,28 @@ class PalcoParametrico {
         await this.audioSystem.init();
         await this.audioSystem.loadMusicLibrary();
 
+        // Initialize sync manager for cross-device control
+        this.syncManager = new SyncManager();
+        await this.syncManager.connect();
+        this.setupSyncListeners();
+
         // Build initial stage
         this.stageBuilder.rebuild();
 
         // Populate music tracks UI
         this.populateMusicTracks();
 
+        // Generate QR code for remote control page
+        this.generateQrCode();
+
         // Window resize handler
         window.addEventListener('resize', () => this.onWindowResize());
+
+        // Fallback bridge para mensagens do /control (postMessage)
+        this.setupMessageBridge();
+
+        // Atualiza info do painel inicial
+        this.updateInfoPanel();
 
         // Start animation loop
         this.animate();
@@ -122,6 +138,11 @@ class PalcoParametrico {
             forward.normalize();
             this.camera.position.add(forward.multiplyScalar(this.cameraSpeed));
             this.controls.target.add(forward.multiplyScalar(this.cameraSpeed));
+
+            // Broadcast to other devices
+            if (this.syncManager) {
+                this.syncManager.sendCameraControl('forward');
+            }
         });
 
         document.getElementById('cam-backward').addEventListener('click', () => {
@@ -170,6 +191,11 @@ class PalcoParametrico {
                 btn.classList.add('active');
                 this.currentLedScene = btn.dataset.scene;
                 this.stageBuilder.setParam('ledEffect', this.currentLedScene);
+
+                // Broadcast to other devices
+                if (this.syncManager) {
+                    this.syncManager.sendLedScene(this.currentLedScene);
+                }
             });
         });
 
@@ -181,6 +207,11 @@ class PalcoParametrico {
                 btn.classList.add('active');
                 this.currentLightScene = btn.dataset.scene;
                 this.stageBuilder.setParam('laserAnimation', this.currentLightScene);
+
+                // Broadcast to other devices
+                if (this.syncManager) {
+                    this.syncManager.sendLightScene(this.currentLightScene);
+                }
             });
         });
 
@@ -194,6 +225,447 @@ class PalcoParametrico {
             this.audioSystem.pause();
             document.getElementById('audio-status').textContent = 'OFF';
         });
+
+        // Desktop slider controls
+        this.setupSlider('tower-count', 'tower-count-val', (value) => {
+            this.stageBuilder.setParam('towerCount', parseInt(value));
+        });
+
+        this.setupSlider('tower-levels', 'tower-levels-val', (value) => {
+            this.stageBuilder.setParam('towerLevels', parseInt(value));
+        });
+
+        this.setupSlider('layout-radius', 'layout-radius-val', (value) => {
+            this.stageBuilder.setParam('layoutRadius', parseFloat(value));
+        });
+
+        this.setupSlider('layout-rows', 'layout-rows-val', (value) => {
+            this.stageBuilder.setParam('layoutRows', parseInt(value));
+        });
+
+        this.setupSlider('layout-cols', 'layout-cols-val', (value) => {
+            this.stageBuilder.setParam('layoutCols', parseInt(value));
+        });
+
+        this.setupSlider('layout-spacing-x', 'layout-spacing-x-val', (value) => {
+            this.stageBuilder.setParam('layoutSpacingX', parseFloat(value));
+        });
+
+        this.setupSlider('layout-spacing-y', 'layout-spacing-y-val', (value) => {
+            this.stageBuilder.setParam('layoutSpacingY', parseFloat(value));
+        });
+
+        this.setupSlider('tower-width', 'tower-width-val', (value) => {
+            this.stageBuilder.setParam('towerWidth', parseFloat(value));
+        });
+
+        this.setupSlider('tower-depth', 'tower-depth-val', (value) => {
+            this.stageBuilder.setParam('towerDepth', parseFloat(value));
+        });
+
+        this.setupSlider('pipe-diameter', 'pipe-diameter-val', (value) => {
+            this.stageBuilder.setParam('pipeDiameter', parseFloat(value));
+        });
+
+        this.setupSlider('boxtruss-panels', 'boxtruss-panels-val', (value) => {
+            this.stageBuilder.setParam('ledBoxTrussPanelsPerFace', parseInt(value));
+        });
+
+        this.setupSlider('boxtruss-faces', 'boxtruss-faces-val', (value) => {
+            this.stageBuilder.setParam('ledBoxTrussFaces', parseInt(value));
+        });
+
+        this.setupSlider('led-intensity-box', 'led-intensity-box-val', (value) => {
+            this.stageBuilder.setParam('ledBoxTrussIntensity', parseFloat(value));
+        });
+
+        this.setupSlider('external-panels', 'external-panels-val', (value) => {
+            this.stageBuilder.setParam('ledExternalPanelsPerFace', parseInt(value));
+        });
+
+        this.setupSlider('external-faces', 'external-faces-val', (value) => {
+            this.stageBuilder.setParam('ledExternalFaces', parseInt(value));
+        });
+
+        this.setupSlider('external-panels-row', 'external-panels-row-val', (value) => {
+            this.stageBuilder.setParam('ledExternalPanelsPerRow', parseInt(value));
+        });
+
+        this.setupSlider('led-intensity-external', 'led-intensity-external-val', (value) => {
+            this.stageBuilder.setParam('ledExternalIntensity', parseFloat(value));
+        });
+
+        this.setupSlider('led-intensity', 'led-intensity-val', (value) => {
+            this.stageBuilder.setParam('ledIntensity', parseFloat(value));
+        });
+
+        this.setupSlider('animation-speed', 'animation-speed-val', (value) => {
+            this.stageBuilder.setParam('animationSpeed', parseFloat(value));
+        });
+
+        this.setupSlider('deck-back-left', 'deck-back-left-val', (value) => {
+            this.stageBuilder.setParam('backstageLeftWidth', parseFloat(value));
+        });
+
+        this.setupSlider('deck-back-center', 'deck-back-center-val', (value) => {
+            this.stageBuilder.setParam('backstageCenterWidth', parseFloat(value));
+        });
+
+        this.setupSlider('deck-back-right', 'deck-back-right-val', (value) => {
+            this.stageBuilder.setParam('backstageRightWidth', parseFloat(value));
+        });
+
+        this.setupSlider('deck-back-depth', 'deck-back-depth-val', (value) => {
+            this.stageBuilder.setParam('backstageDepth', parseFloat(value));
+        });
+
+        this.setupSlider('deck-dj-width', 'deck-dj-width-val', (value) => {
+            this.stageBuilder.setParam('djWidth', parseFloat(value));
+        });
+
+        this.setupSlider('deck-dj-depth', 'deck-dj-depth-val', (value) => {
+            this.stageBuilder.setParam('djDepth', parseFloat(value));
+        });
+
+        this.setupSlider('deck-front-width', 'deck-front-width-val', (value) => {
+            this.stageBuilder.setParam('frontWidth', parseFloat(value));
+        });
+
+        this.setupSlider('deck-front-depth', 'deck-front-depth-val', (value) => {
+            this.stageBuilder.setParam('frontDepth', parseFloat(value));
+        });
+
+        this.setupSlider('deck-height', 'deck-height-val', (value) => {
+            this.stageBuilder.setParam('deckHeight', parseFloat(value));
+        });
+
+        this.setupSlider('crowd-density', 'crowd-density-val', (value) => {
+            this.stageBuilder.setParam('crowdDensity', parseFloat(value));
+        });
+
+        // Desktop dropdown controls
+        const towerShapeSelect = document.getElementById('tower-shape');
+        if (towerShapeSelect) {
+            towerShapeSelect.addEventListener('change', (e) => {
+                this.stageBuilder.setParam('towerShape', e.target.value);
+            });
+        }
+
+        const layoutTypeSelect = document.getElementById('layout-type');
+        if (layoutTypeSelect) {
+            layoutTypeSelect.addEventListener('change', (e) => {
+                this.stageBuilder.setParam('layoutType', e.target.value);
+            });
+        }
+
+        const ledEffectSelect = document.getElementById('led-effect');
+        if (ledEffectSelect) {
+            ledEffectSelect.addEventListener('change', (e) => {
+                this.stageBuilder.setParam('ledEffect', e.target.value);
+            });
+        }
+
+        // Color pickers
+        const pipeColorInput = document.getElementById('pipe-color');
+        if (pipeColorInput) {
+            pipeColorInput.addEventListener('input', (e) => {
+                const hex = parseInt(e.target.value.replace('#', '0x'), 16);
+                this.stageBuilder.setParam('pipeColor', hex);
+            });
+        }
+
+        const ledColorGlobal = document.getElementById('led-color');
+        if (ledColorGlobal) {
+            ledColorGlobal.addEventListener('input', (e) => {
+                const hex = parseInt(e.target.value.replace('#', '0x'), 16);
+                this.stageBuilder.setParam('ledColor', hex);
+            });
+        }
+
+        const ledColorBox = document.getElementById('led-color-box');
+        if (ledColorBox) {
+            ledColorBox.addEventListener('input', (e) => {
+                const hex = parseInt(e.target.value.replace('#', '0x'), 16);
+                this.stageBuilder.setParam('ledBoxTrussColor', hex);
+            });
+        }
+
+        const ledColorExternal = document.getElementById('led-color-external');
+        if (ledColorExternal) {
+            ledColorExternal.addEventListener('input', (e) => {
+                const hex = parseInt(e.target.value.replace('#', '0x'), 16);
+                this.stageBuilder.setParam('ledExternalColor', hex);
+            });
+        }
+
+        // Desktop checkbox controls
+        const showDiagonalBraces = document.getElementById('show-diagonal-braces');
+        if (showDiagonalBraces) {
+            showDiagonalBraces.addEventListener('change', (e) => {
+                this.stageBuilder.setParam('showDiagonalBraces', e.target.checked);
+            });
+        }
+
+        const ledBoxtrussEnabled = document.getElementById('led-boxtruss-enabled');
+        if (ledBoxtrussEnabled) {
+            ledBoxtrussEnabled.addEventListener('change', (e) => {
+                this.stageBuilder.setParam('ledBoxTrussEnabled', e.target.checked);
+            });
+        }
+
+        const ledExternalEnabled = document.getElementById('led-external-enabled');
+        if (ledExternalEnabled) {
+            ledExternalEnabled.addEventListener('change', (e) => {
+                this.stageBuilder.setParam('ledExternalEnabled', e.target.checked);
+            });
+        }
+
+        const hideRearPanels = document.getElementById('hide-rear-panels');
+        if (hideRearPanels) {
+            hideRearPanels.addEventListener('change', (e) => {
+                this.stageBuilder.setParam('hideRearPanels', e.target.checked);
+            });
+        }
+
+        const autoRotateCheck = document.getElementById('auto-rotate');
+        if (autoRotateCheck) {
+            autoRotateCheck.addEventListener('change', (e) => {
+                this.autoRotate = e.target.checked;
+                this.controls.autoRotate = this.autoRotate;
+                this.controls.autoRotateSpeed = 1.0;
+            });
+        }
+
+        const showFloor = document.getElementById('show-floor');
+        if (showFloor) {
+            showFloor.addEventListener('change', (e) => {
+                this.stageBuilder.setParam('showFloor', e.target.checked);
+            });
+        }
+
+        const showStageDeck = document.getElementById('show-stage-deck');
+        if (showStageDeck) {
+            showStageDeck.addEventListener('change', (e) => {
+                this.stageBuilder.setParam('stageDeckEnabled', e.target.checked);
+            });
+        }
+
+        const showGlbModel = document.getElementById('show-glb-model');
+        if (showGlbModel) {
+            showGlbModel.addEventListener('change', (e) => {
+                this.stageBuilder.setParam('showGlbModel', e.target.checked);
+            });
+        }
+
+        // Camera view buttons
+        const topViewBtn = document.getElementById('top-view');
+        if (topViewBtn) {
+            topViewBtn.addEventListener('click', () => {
+                this.camera.position.set(0, 50, 0);
+                this.controls.target.set(0, 0, 0);
+                this.controls.update();
+            });
+        }
+
+        const frontViewBtn = document.getElementById('front-view');
+        if (frontViewBtn) {
+            frontViewBtn.addEventListener('click', () => {
+                this.camera.position.set(0, 15, 40);
+                this.controls.target.set(0, 5, 0);
+                this.controls.update();
+            });
+        }
+
+        const sideViewBtn = document.getElementById('side-view');
+        if (sideViewBtn) {
+            sideViewBtn.addEventListener('click', () => {
+                this.camera.position.set(40, 15, 0);
+                this.controls.target.set(0, 5, 0);
+                this.controls.update();
+            });
+        }
+
+        // Export configuration button
+        const exportBtn = document.getElementById('export-config');
+        if (exportBtn) {
+            exportBtn.addEventListener('click', () => {
+                const config = this.stageBuilder.params;
+                const json = JSON.stringify(config, null, 2);
+                const blob = new Blob([json], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'palco-config.json';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            });
+        }
+    }
+
+    setupSlider(sliderId, displayId, callback) {
+        const slider = document.getElementById(sliderId);
+        const display = document.getElementById(displayId);
+        if (slider && display) {
+            slider.addEventListener('input', (e) => {
+                display.textContent = e.target.value;
+                callback(e.target.value);
+            });
+        }
+    }
+
+    setupSyncListeners() {
+        if (!this.syncManager) return;
+
+        // Listen for remote control changes
+        this.syncManager.on('led-scene', (data) => {
+            this.currentLedScene = data.scene;
+            this.stageBuilder.setParam('ledEffect', data.scene);
+
+            // Update UI
+            document.querySelectorAll('#led-scenes .scene-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.scene === data.scene);
+            });
+        });
+
+        this.syncManager.on('light-scene', (data) => {
+            this.currentLightScene = data.scene;
+            this.stageBuilder.setParam('laserAnimation', data.scene);
+
+            // Update UI
+            document.querySelectorAll('#light-scenes .scene-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.scene === data.scene);
+            });
+        });
+
+        this.syncManager.on('camera-control', (data) => {
+            switch (data.action) {
+                case 'forward':
+                    const forward = new THREE.Vector3();
+                    this.camera.getWorldDirection(forward);
+                    forward.y = 0;
+                    forward.normalize();
+                    this.camera.position.add(forward.multiplyScalar(this.cameraSpeed));
+                    this.controls.target.add(forward.multiplyScalar(this.cameraSpeed));
+                    break;
+                case 'backward':
+                    const backward = new THREE.Vector3();
+                    this.camera.getWorldDirection(backward);
+                    backward.y = 0;
+                    backward.normalize();
+                    this.camera.position.sub(backward.multiplyScalar(this.cameraSpeed));
+                    this.controls.target.sub(backward.multiplyScalar(this.cameraSpeed));
+                    break;
+                case 'left':
+                    const angleL = Math.PI / 8;
+                    const posL = this.camera.position.clone().sub(this.controls.target);
+                    posL.applyAxisAngle(new THREE.Vector3(0, 1, 0), angleL);
+                    this.camera.position.copy(posL.add(this.controls.target));
+                    break;
+                case 'right':
+                    const angleR = -Math.PI / 8;
+                    const posR = this.camera.position.clone().sub(this.controls.target);
+                    posR.applyAxisAngle(new THREE.Vector3(0, 1, 0), angleR);
+                    this.camera.position.copy(posR.add(this.controls.target));
+                    break;
+                case 'reset':
+                    this.camera.position.set(0, 15, 30);
+                    this.controls.target.set(0, 5, 0);
+                    this.controls.update();
+                    break;
+                case 'auto-rotate':
+                    this.autoRotate = data.data;
+                    this.controls.autoRotate = this.autoRotate;
+                    this.controls.autoRotateSpeed = 1.0;
+                    break;
+            }
+        });
+
+        this.syncManager.on('music-control', (data) => {
+            switch (data.action) {
+                case 'play':
+                    this.audioSystem.play();
+                    document.getElementById('audio-status').textContent = 'ON';
+                    break;
+                case 'pause':
+                    this.audioSystem.pause();
+                    document.getElementById('audio-status').textContent = 'OFF';
+                    break;
+                case 'track':
+                    this.audioSystem.loadTrack(data.data);
+                    this.audioSystem.play();
+                    document.getElementById('audio-status').textContent = 'ON';
+                    break;
+            }
+        });
+
+        // Atualizar painel de info quando cenas mudam
+        this.updateInfoPanel();
+    }
+
+    setupMessageBridge() {
+        window.addEventListener('message', (event) => {
+            if (event.origin !== window.location.origin) return;
+            const data = event.data;
+            if (!data || data.type !== 'control-action') return;
+
+            if (data.kind === 'camera') {
+                this.moveCamera(data.action);
+            } else if (data.kind === 'playback') {
+                if (data.action === 'toggle') {
+                    if (this.audioSystem.isPlaying) {
+                        this.audioSystem.pause();
+                        document.getElementById('audio-status').textContent = 'OFF';
+                    } else {
+                        this.audioSystem.play();
+                        document.getElementById('audio-status').textContent = 'ON';
+                    }
+                }
+            } else if (data.kind === 'scene') {
+                if (data.target === 'led') {
+                    this.stageBuilder.setParam('ledEffect', data.action);
+                } else if (data.target === 'light') {
+                    this.stageBuilder.setParam('laserAnimation', data.action);
+                }
+            } else if (data.kind === 'music') {
+                if (data.action === 'play') {
+                    this.audioSystem.play();
+                    document.getElementById('audio-status').textContent = 'ON';
+                } else if (data.action === 'pause') {
+                    this.audioSystem.pause();
+                    document.getElementById('audio-status').textContent = 'OFF';
+                } else if (data.action === 'track' && data.data) {
+                    this.audioSystem.loadTrack(data.data);
+                    this.audioSystem.play();
+                    document.getElementById('audio-status').textContent = 'ON';
+                }
+            }
+        });
+    }
+
+    updateInfoPanel() {
+        if (!this.stageBuilder) return;
+        const info = this.stageBuilder.getStats();
+        const setText = (id, text) => {
+            const el = document.getElementById(id);
+            if (el) el.textContent = text;
+        };
+
+        setText('panel-total-stat', info.leds.totalPanels.toString());
+        setText('panel-external-stat', info.leds.externalPanels.toString());
+        setText('panel-boxtruss-stat', info.leds.boxPanels.toString());
+        setText('panel-total-area', `${info.leds.totalArea.toFixed(2)} m²`);
+        setText('panel-external-area', `${info.leds.externalArea.toFixed(2)} m²`);
+        setText('panel-boxtruss-area', `${info.leds.boxArea.toFixed(2)} m²`);
+        setText('tower-stat', info.towers.count.toString());
+        setText('tower-dims', `${info.towers.width.toFixed(2)} x ${info.towers.depth.toFixed(2)} x ${info.towers.height.toFixed(2)} m`);
+        setText('tower-width-only', `${info.towers.width.toFixed(2)} m`);
+        setText('stage-dims', `${info.stage.width.toFixed(2)} x ${info.stage.depth.toFixed(2)} x ${info.stage.height.toFixed(2)} m`);
+        setText('crowd-count', info.crowd.count.toString());
+        setText('crowd-pit-count', info.crowd.pit.toString());
+        setText('crowd-backstage-count', info.crowd.backstage.toString());
+        setText('triangles', this.renderer.info.render.triangles.toString());
     }
 
     populateMusicTracks() {
@@ -223,6 +695,33 @@ class PalcoParametrico {
         });
     }
 
+    generateQrCode() {
+        const canvas = document.getElementById('qr-canvas');
+        if (!canvas || typeof qrcode === 'undefined') return;
+
+        const url = new URL('/control', window.location.href).href;
+        const qr = qrcode(0, 'H');
+        qr.addData(url);
+        qr.make();
+
+        const ctx = canvas.getContext('2d');
+        const count = qr.getModuleCount();
+        const cellSize = Math.floor(canvas.width / count);
+        const margin = Math.floor((canvas.width - cellSize * count) / 2);
+
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.fillStyle = '#000';
+        for (let r = 0; r < count; r++) {
+            for (let c = 0; c < count; c++) {
+                if (qr.isDark(r, c)) {
+                    ctx.fillRect(margin + c * cellSize, margin + r * cellSize, cellSize, cellSize);
+                }
+            }
+        }
+    }
+
     createSunsetSky() {
         const size = 1024;
         const canvas = document.createElement('canvas');
@@ -230,44 +729,18 @@ class PalcoParametrico {
         canvas.height = size;
         const ctx = canvas.getContext('2d');
 
-        // Dark blue night sky gradient
-        const grad = ctx.createLinearGradient(0, size, 0, 0);
-        grad.addColorStop(0, '#0a0e1a');     // Dark blue-black horizon
-        grad.addColorStop(0.4, '#0d1526');   // Deep blue
-        grad.addColorStop(0.7, '#0f1a2e');   // Night blue
-        grad.addColorStop(1, '#111d33');     // Darker blue at zenith
-        ctx.fillStyle = grad;
+        // Fundo preto
+        ctx.fillStyle = '#000000';
         ctx.fillRect(0, 0, size, size);
 
-        // Subtle stars
-        const starCount = 800;
+        // Estrelas como pixels nítidos
+        const starCount = 1200;
         for (let i = 0; i < starCount; i++) {
-            const x = Math.random() * size;
-            const y = Math.random() * (size * 0.8);
-            const r = Math.random() * 0.6 + 0.2;
-            const brightness = Math.random() * 0.4 + 0.15;
-
-            ctx.fillStyle = `rgba(255, 255, 255, ${brightness})`;
-            ctx.beginPath();
-            ctx.arc(x, y, r, 0, Math.PI * 2);
-            ctx.fill();
-        }
-
-        // Brighter stars
-        for (let i = 0; i < 40; i++) {
-            const x = Math.random() * size;
-            const y = Math.random() * (size * 0.7);
-            const r = Math.random() * 1.0 + 0.5;
-            const brightness = Math.random() * 0.3 + 0.4;
-
-            const gradient = ctx.createRadialGradient(x, y, 0, x, y, r * 2);
-            gradient.addColorStop(0, `rgba(255, 255, 255, ${brightness})`);
-            gradient.addColorStop(0.5, `rgba(255, 255, 255, ${brightness * 0.3})`);
-            gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
-            ctx.fillStyle = gradient;
-            ctx.beginPath();
-            ctx.arc(x, y, r * 2, 0, Math.PI * 2);
-            ctx.fill();
+            const x = Math.floor(Math.random() * size);
+            const y = Math.floor(Math.random() * size);
+            const alpha = Math.random() * 0.5 + 0.5;
+            ctx.fillStyle = `rgba(255,255,255,${alpha})`;
+            ctx.fillRect(x, y, 1, 1);
         }
 
         const texture = new THREE.CanvasTexture(canvas);
@@ -349,6 +822,9 @@ class PalcoParametrico {
 
         // Update stats
         this.updateStats();
+
+        // Update info panel (a cada frame é ok, custo baixo)
+        this.updateInfoPanel();
     }
 }
 

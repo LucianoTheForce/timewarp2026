@@ -53,9 +53,26 @@ export class StageBuilder {
         this.crowdGroup.name = 'crowd';
         this.scene.add(this.crowdGroup);
 
+        this.stageSkirtsGroup = new THREE.Group();
+        this.stageSkirtsGroup.name = 'stageSkirts';
+        this.scene.add(this.stageSkirtsGroup);
+
+        this.crowdBarrierGroup = new THREE.Group();
+        this.crowdBarrierGroup.name = 'crowdBarrier';
+        this.scene.add(this.crowdBarrierGroup);
+
         this.crowdInstances = null;
         this.crowdCount = 0;
         this.crowdData = []; // Array para armazenar dados de animação
+
+        // Audio data for reactive effects
+        this.audioData = {
+            bass: 0,
+            mid: 0,
+            treble: 0,
+            volume: 0,
+            beat: false
+        };
 
         this.floor = null;
         this.concreteTexture = null;
@@ -102,7 +119,7 @@ export class StageBuilder {
             stairsDepth: 3.0,
             riserCount: 4,
             riserWidth: 2.0,
-            riserDepth: 2.0,
+            riserDepth: 1.0, // 4 praticáveis de 2x1 m = 8x1 m total
             riserHeight: 1.0,
             stageFrontBandsEnabled: true,
             stageRearBandsEnabled: true,
@@ -124,9 +141,10 @@ export class StageBuilder {
             crowdDensity: 2.5, // pessoas por m² (2.5 = show lotado, 1.5 = confortável)
             crowdPitEnabled: true, // público na pista
             crowdBackstageEnabled: true, // público no backstage
-            crowdColor: 0xff6600, // cor base do público
+            crowdColor: 0x444444, // cor base do público (cinza escuro mais visível)
             crowdAnimationSpeed: 1.0,
 
+            showFloor: true,
             useConcreteFloor: true,
 
             // Pipe params (2m standard)
@@ -157,7 +175,9 @@ export class StageBuilder {
             ledEffect: 'wave',
             ledColor: 0xff0066,
             ledIntensity: 1.4,
-            animationSpeed: 1.0
+            animationSpeed: 1.0,
+
+            showGlbModel: false
         };
 
         // Materials
@@ -334,6 +354,7 @@ export class StageBuilder {
 
         // Piso concreto opcional
         this.applyConcreteFloor(this.params.useConcreteFloor);
+        this.setFloorVisible(this.params.showFloor);
     }
 
     setFloorVisible(visible) {
@@ -366,6 +387,19 @@ export class StageBuilder {
         this.towersGroup.visible = visible;
         this.ledGlassPanels.visible = visible;
         this.lasersGroup.visible = visible;
+    }
+
+    setAudioData(audioData) {
+        // Update audio data for reactive effects
+        if (audioData) {
+            this.audioData = {
+                bass: audioData.bass || 0,
+                mid: audioData.mid || 0,
+                treble: audioData.treble || 0,
+                volume: audioData.volume || 0,
+                beat: audioData.beat || false
+            };
+        }
     }
 
     updateParams(newParams) {
@@ -424,6 +458,12 @@ export class StageBuilder {
             if (this.crowdInstances && this.crowdInstances.material) {
                 this.crowdInstances.material.color.setHex(value);
             }
+        } else if (key === 'showFloor') {
+            this.setFloorVisible(value);
+        } else if (key === 'stageDeckEnabled') {
+            this.rebuild();
+        } else if (key === 'useConcreteFloor') {
+            this.applyConcreteFloor(value);
         } else if (key === 'crowdAnimationSpeed') {
             // Não precisa rebuild, apenas atualiza na animação
         } else if (key === 'ledEffect' && value === 'video') {
@@ -502,6 +542,8 @@ export class StageBuilder {
         this.clearRisers();
         this.clearLasers();
         this.clearStageBands();
+        this.clearStageSkirts();
+        this.clearCrowdBarrier();
         this.allLedPanels = [];
         this.stageDeck.position.set(0, 0, 0);
 
@@ -510,6 +552,7 @@ export class StageBuilder {
         if (this.params.stageDeckEnabled) {
             this.buildStageDeck();
             this.alignStageDeckToFront();
+            this.buildStageSkirts();
         }
 
         if (this.params.backScaffoldEnabled) {
@@ -552,6 +595,47 @@ export class StageBuilder {
         if (this.params.crowdEnabled) {
             this.buildCrowd();
         }
+    }
+
+    getStats() {
+        const boxPanels = this.allLedPanels.filter(p => p.userData.type === 'ledBoxTruss').length;
+        const extPanels = this.allLedPanels.filter(p => p.userData.type === 'ledExternal').length;
+        const boxArea = boxPanels * 0.5 * 0.5;
+        const extArea = extPanels * (this.params.ledExternalWidth || 1.0) * (this.params.ledExternalHeight || 0.5);
+        const totalArea = boxArea + extArea;
+
+        const deckBox = new THREE.Box3().setFromObject(this.stageDeck);
+        const stageWidth = isFinite(deckBox.max.x) ? (deckBox.max.x - deckBox.min.x) : 0;
+        const stageDepth = isFinite(deckBox.max.z) ? (deckBox.max.z - deckBox.min.z) : 0;
+        const stageHeight = this.params.deckHeight || 0;
+
+        return {
+            towers: {
+                count: this.params.towerCount,
+                width: this.params.towerWidth,
+                depth: this.params.towerDepth,
+                levels: this.params.towerLevels,
+                height: this.params.towerLevels * this.params.pipeLength
+            },
+            leds: {
+                boxPanels,
+                externalPanels: extPanels,
+                totalPanels: boxPanels + extPanels,
+                boxArea,
+                externalArea: extArea,
+                totalArea
+            },
+            stage: {
+                width: stageWidth,
+                depth: stageDepth,
+                height: stageHeight
+            },
+            crowd: {
+                count: this.crowdCount || 0,
+                pit: (this.crowdData || []).filter(p => p.area === 'pit').length,
+                backstage: (this.crowdData || []).filter(p => p.area === 'backstage').length
+            }
+        };
     }
 
     clearTowers() {
@@ -624,6 +708,24 @@ export class StageBuilder {
             if (child.geometry) child.geometry.dispose();
             if (child.material) child.material.dispose();
             this.stairsGroup.remove(child);
+        }
+    }
+
+    clearStageSkirts() {
+        while (this.stageSkirtsGroup.children.length > 0) {
+            const child = this.stageSkirtsGroup.children[0];
+            if (child.geometry) child.geometry.dispose();
+            if (child.material) child.material.dispose();
+            this.stageSkirtsGroup.remove(child);
+        }
+    }
+
+    clearCrowdBarrier() {
+        while (this.crowdBarrierGroup.children.length > 0) {
+            const child = this.crowdBarrierGroup.children[0];
+            if (child.geometry) child.geometry.dispose();
+            if (child.material) child.material.dispose();
+            this.crowdBarrierGroup.remove(child);
         }
     }
 
@@ -747,6 +849,64 @@ export class StageBuilder {
         const targetBack = frontZ - 6.0;
         const deltaZ = targetBack - deckBack;
         this.stageDeck.position.z += deltaZ;
+    }
+
+    buildStageSkirts() {
+        this.clearStageSkirts();
+
+        const deckBox = new THREE.Box3().setFromObject(this.stageDeck);
+        if (!isFinite(deckBox.min.x) || !isFinite(deckBox.max.x)) return;
+
+        const height = this.params.deckHeight;
+        const thickness = 0.05;
+        const stairsGapMargin = 0.05;
+        const stairsGap = (this.params.stairsWidth || 1.5) + 0.3; // abertura para a escada na lateral
+        const gapCenterZ = deckBox.min.z + (this.params.stairsWidth || 1.5) / 2 + stairsGapMargin;
+
+        const skirtMat = new THREE.MeshStandardMaterial({
+            color: 0x111111,
+            roughness: 1.0,
+            metalness: 0.0,
+            side: THREE.DoubleSide
+        });
+
+        const addSkirt = (w, h, d, x, y, z) => {
+            const geom = new THREE.BoxGeometry(w, h, d);
+            const mesh = new THREE.Mesh(geom, skirtMat.clone());
+            mesh.position.set(x, y, z);
+            mesh.castShadow = false;
+            mesh.receiveShadow = true;
+            mesh.userData.type = 'stageSkirt';
+            this.stageSkirtsGroup.add(mesh);
+        };
+
+        const y = height / 2;
+        const totalWidth = deckBox.max.x - deckBox.min.x;
+        const totalDepth = deckBox.max.z - deckBox.min.z;
+
+        // Frente e traseira
+        addSkirt(totalWidth, height, thickness, (deckBox.min.x + deckBox.max.x) / 2, y, deckBox.min.z - thickness / 2);
+        addSkirt(totalWidth, height, thickness, (deckBox.min.x + deckBox.max.x) / 2, y, deckBox.max.z + thickness / 2);
+
+        // Laterais com abertura para escada
+        const gapMin = gapCenterZ - stairsGap / 2;
+        const gapMax = gapCenterZ + stairsGap / 2;
+
+        const addSideSkirt = (xPos) => {
+            // Segmento frontal até a abertura
+            const frontDepth = Math.max(0, gapMin - deckBox.min.z);
+            if (frontDepth > 0.01) {
+                addSkirt(thickness, height, frontDepth, xPos, y, deckBox.min.z + frontDepth / 2);
+            }
+            // Segmento após a abertura até o fundo
+            const rearDepth = Math.max(0, deckBox.max.z - gapMax);
+            if (rearDepth > 0.01) {
+                addSkirt(thickness, height, rearDepth, xPos, y, gapMax + rearDepth / 2);
+            }
+        };
+
+        addSideSkirt(deckBox.min.x - thickness / 2);
+        addSideSkirt(deckBox.max.x + thickness / 2);
     }
 
     buildDimensionLines() {
@@ -966,6 +1126,20 @@ export class StageBuilder {
         const rightX = deckBox.max.x + t / 2;
         addSideWithGap(leftX);
         addSideWithGap(rightX);
+
+        // Barreira ao redor da área do DJ (proteção backstage vs DJ)
+        const djW = this.params.djWidth;
+        const djD = this.params.djDepth;
+        const zDj = -(this.params.backstageDepth / 2 - this.params.djDepth / 2) + this.stageDeck.position.z;
+        const djXMin = this.stageDeck.position.x - djW / 2;
+        const djXMax = this.stageDeck.position.x + djW / 2;
+
+        // Frente e trás do DJ
+        addSegment((djXMin + djXMax) / 2, zDj + djD / 2 + t / 2, djW, t);
+        addSegment((djXMin + djXMax) / 2, zDj - djD / 2 - t / 2, djW, t);
+        // Laterais do DJ
+        addSegment(djXMin - t / 2, zDj, t, djD);
+        addSegment(djXMax + t / 2, zDj, t, djD);
     }
 
     buildStairs() {
@@ -983,8 +1157,9 @@ export class StageBuilder {
         // Escadas na lateral frontal esquerda/direita, degraus entrando no palco (eixo +X para esquerda, -X para direita)
         const zPos = deckBox.min.z + stairsWidth / 2 + margin; // encostado na borda frontal do palco
         const extraSideOffset = 0.5;
-        const leftStartX = deckBox.min.x - stepD / 2 - margin - extraSideOffset;
-        const rightStartX = deckBox.max.x + stepD / 2 + margin + extraSideOffset;
+        const lateralAdjust = 1.0; // deslocar 1m para cada lado
+        const leftStartX = deckBox.min.x - stepD / 2 - margin - extraSideOffset - lateralAdjust;
+        const rightStartX = deckBox.max.x + stepD / 2 + margin + extraSideOffset + lateralAdjust;
 
         const makeStairs = (xStart, dir) => {
             for (let i = 0; i < steps; i++) {
@@ -1019,18 +1194,35 @@ export class StageBuilder {
 
         const totalWidth = riserCount * riserWidth;
         const startX = -totalWidth / 2 + riserWidth / 2;
-        // Posicionar risers dentro da zona DJ (aproximado)
-        const zDj = -(backstageDepth / 2 - djDepth / 2) + this.stageDeck.position.z;
+        const frontZ = deckBox.max.z - riserDepth / 2 - 0.2; // encostado na grade frontal
         const y = this.params.deckHeight + riserHeight / 2;
 
         for (let i = 0; i < riserCount; i++) {
             const x = startX + i * riserWidth;
             const geom = new THREE.BoxGeometry(riserWidth, riserHeight, riserDepth);
             const mesh = new THREE.Mesh(geom, this.riserMaterial.clone());
-            mesh.position.set(x, y, zDj);
+            mesh.position.set(x, y, frontZ);
             mesh.userData.type = 'riser';
             this.risersGroup.add(mesh);
         }
+
+        // DJ em cima dos praticáveis
+        const djHeight = 1.8;
+        const djBody = new THREE.BoxGeometry(0.55, djHeight * 0.65, 0.35);
+        const djHead = new THREE.SphereGeometry(0.18, 16, 16);
+        const djMat = new THREE.MeshStandardMaterial({ color: 0x111111, metalness: 0.1, roughness: 0.7 });
+
+        const djGroup = new THREE.Group();
+        const bodyMesh = new THREE.Mesh(djBody, djMat);
+        bodyMesh.position.y = djHeight * 0.65 / 2;
+        const headMesh = new THREE.Mesh(djHead, djMat);
+        headMesh.position.y = djHeight * 0.65 + 0.18;
+        djGroup.add(bodyMesh);
+        djGroup.add(headMesh);
+
+        djGroup.position.set(0, this.params.deckHeight + riserHeight, frontZ - 0.5); // recuado 0.5m
+        djGroup.userData.type = 'dj';
+        this.risersGroup.add(djGroup);
     }
 
     buildStageBands() {
@@ -1854,6 +2046,33 @@ export class StageBuilder {
                     panel.material.emissiveIntensity = isBuildOn ? baseIntensity : 0;
                     break;
 
+                case 'audio-reactive':
+                    // Audio reactive - reage ao volume geral
+                    const audioIntensity = this.audioData.volume * 0.8 + 0.2;
+                    const audioHue = (this.audioData.bass * 0.3 + this.time * 0.1) % 1;
+                    panel.material.emissive.setHSL(audioHue, 0.9, 0.5);
+                    panel.material.emissiveIntensity = baseIntensity * audioIntensity;
+
+                    // Beat flash
+                    if (this.audioData.beat) {
+                        panel.material.emissiveIntensity *= 1.5;
+                    }
+                    break;
+
+                case 'audio-bass':
+                    // Reage principalmente aos graves (bass)
+                    const bassLevel = this.audioData.bass;
+                    const bassColor = new THREE.Color();
+                    bassColor.setHSL(0.6 + bassLevel * 0.2, 1, 0.5); // Azul a roxo
+                    panel.material.emissive.copy(bassColor);
+                    panel.material.emissiveIntensity = baseIntensity * (0.3 + bassLevel * 0.7);
+
+                    // Extra intensity on beat
+                    if (this.audioData.beat) {
+                        panel.material.emissiveIntensity *= 2.0;
+                    }
+                    break;
+
                 case 'solid':
                 default:
                     panel.material.emissive.copy(baseColor);
@@ -1929,20 +2148,44 @@ export class StageBuilder {
         const density = this.params.crowdDensity; // pessoas por m²
         const peoplePositions = [];
 
-        // Pista em frente ao palco (lado +Z), iniciando 5m após a última torre
+        // Pista em frente ao palco (lado +Z): inicia 3m à frente do palco e vai até 5m além da última torre
         if (this.params.crowdPitEnabled) {
             const pitWidth = deckBox.max.x - deckBox.min.x;
-            const pitDepth = 12; // profundidade fixa da pista para frente
             const gridSpacing = Math.sqrt(1 / density);
-            const numRows = Math.floor(pitDepth / gridSpacing);
             const numCols = Math.floor(pitWidth / gridSpacing);
-            const startZ = towerBox.max.z + 5;
+
+            // Inicia na frente do palco (face +Z) e termina 5m após a última torre
+            const stageFrontZ = deckBox.max.z;
+            const pitStartZ = stageFrontZ + 3.0; // faixa livre de 3m para som
+            const pitEndZ = towerBox.max.z + 5;
+            const pitDepth = pitEndZ - pitStartZ;
+            if (pitDepth <= 0) return;
+
+            const numRows = Math.floor(pitDepth / gridSpacing);
+
+            // Barreira na linha de início da pista (3m do palco)
+            this.clearCrowdBarrier();
+            const barrierHeight = 1.2;
+            const barrierThickness = 0.15;
+            const barrierWidth = pitWidth;
+            const barrierGeom = new THREE.BoxGeometry(barrierWidth, barrierHeight, barrierThickness);
+            const barrierMat = new THREE.MeshStandardMaterial({
+                color: 0x111111,
+                roughness: 0.8,
+                metalness: 0.1
+            });
+            const barrier = new THREE.Mesh(barrierGeom, barrierMat);
+            barrier.position.set((deckBox.min.x + deckBox.max.x) / 2, barrierHeight / 2, pitStartZ - barrierThickness / 2);
+            barrier.userData.type = 'crowdBarrier';
+            barrier.castShadow = true;
+            barrier.receiveShadow = true;
+            this.crowdBarrierGroup.add(barrier);
 
             for (let row = 0; row < numRows; row++) {
                 for (let col = 0; col < numCols; col++) {
                     const randomOffset = (Math.random() - 0.5) * gridSpacing * 0.5;
                     const x = deckBox.min.x + (col + 0.5) * gridSpacing + randomOffset;
-                    const z = startZ + (row + 0.5) * gridSpacing + randomOffset * 0.5;
+                    const z = pitStartZ + (row + 0.5) * gridSpacing + randomOffset * 0.5;
                     const y = 0.9;
 
                     peoplePositions.push({
@@ -2139,6 +2382,41 @@ export class StageBuilder {
                         if (laserType === 'stage-diagonal') {
                             laser.rotation.x = Math.PI / 6 + stageSweep * Math.PI / 3;
                         }
+                    }
+                    break;
+
+                case 'audio-sync':
+                    // Audio reactive - sincronizado com volume
+                    const audioOpacity = 0.3 + this.audioData.volume * 0.6;
+                    laser.material.opacity = audioOpacity;
+
+                    // Rotação baseada nos médios
+                    if (laserType === 'vertical' || laserType === 'stage-vertical') {
+                        laser.rotation.y = this.audioData.mid * Math.PI * 2;
+                    } else if (laserType === 'horizontal' || laserType === 'stage-diagonal') {
+                        const sweepAmount = this.audioData.treble * Math.PI / 2;
+                        laser.rotation.y = Math.sin(t + this.audioData.bass * 5) * sweepAmount;
+                    }
+
+                    // Beat flash
+                    if (this.audioData.beat) {
+                        laser.material.opacity = Math.min(1.0, audioOpacity * 1.5);
+                    }
+                    break;
+
+                case 'audio-kick':
+                    // Reage principalmente ao kick/bass
+                    const kickLevel = this.audioData.bass;
+                    laser.material.opacity = 0.2 + kickLevel * 0.7;
+
+                    // Movimento brusco no beat
+                    if (this.audioData.beat) {
+                        if (laserType === 'vertical' || laserType === 'stage-vertical') {
+                            laser.rotation.y = Math.random() * Math.PI * 2;
+                        } else if (laserType === 'horizontal' || laserType === 'stage-diagonal') {
+                            laser.rotation.x = (Math.random() - 0.5) * Math.PI / 2;
+                        }
+                        laser.material.opacity = 1.0;
                     }
                     break;
 
