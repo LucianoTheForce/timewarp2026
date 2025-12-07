@@ -729,6 +729,7 @@
                 <option value="anim3">Anim 3 - Turbo</option>
                 <option value="anim4">Anim 4 - Estático</option>
                 <option value="anim5">Anim 5 - Médio</option>
+                <option value="wave" selected>Onda Treble</option>
             </select>
         </div>
         <div class="control-group">
@@ -739,6 +740,15 @@
                 <option value="pos3">Pos 3 - Aberta</option>
                 <option value="pos4">Pos 4 - Fechada</option>
                 <option value="pos5">Pos 5 - Altas</option>
+            </select>
+        </div>
+        <div class="control-group">
+            <label>Direção da Onda (Lasers)</label>
+            <select id="laser-wave-mode">
+                <option value="center-out">Centro → Bordas</option>
+                <option value="edges-in">Bordas → Centro</option>
+                <option value="left-right">Esquerda → Direita</option>
+                <option value="right-left">Direita → Esquerda</option>
             </select>
         </div>
         <div class="control-group">
@@ -754,6 +764,32 @@
         </div>
 
         <div class="section-divider"></div>
+
+        <h3>Painéis P5 (torres e palco)</h3>
+        <div class="checkbox-group">
+            <input type="checkbox" id="p5-panels-enabled" checked>
+            <label>Ativar P5</label>
+        </div>
+        <div class="control-group">
+            <label>Paineis por Linha (X) <span class="value-display" id="p5-panels-x-val">4</span></label>
+            <input type="range" id="p5-panels-x" min="1" max="12" value="4" step="1">
+        </div>
+        <div class="control-group">
+            <label>Paineis por Coluna (Y) <span class="value-display" id="p5-panels-y-val">4</span></label>
+            <input type="range" id="p5-panels-y" min="1" max="20" value="4" step="1">
+        </div>
+        <div class="control-group">
+            <label>Altura inicial P5 (m) <span class="value-display" id="p5-panels-start-val">0.5</span></label>
+            <input type="range" id="p5-panels-start" min="0" max="5" value="0.5" step="0.1">
+        </div>
+        <div class="control-group">
+            <label>Altura final P5 (m) <span class="value-display" id="p5-panels-end-val">6.0</span></label>
+            <input type="range" id="p5-panels-end" min="1" max="12" value="6.0" step="0.1">
+        </div>
+        <div class="control-group color-picker-wrapper">
+            <label>Cor P5</label>
+            <input type="color" id="p5-panel-color" value="#ffffff">
+        </div>
 
         <h3>Camera e Visualizacao</h3>
 

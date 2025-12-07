@@ -85,7 +85,11 @@ export class AudioSystem {
         const musicFolder = './assets/musicas/';
 
         // Default tracks (user should add their own music files)
+        // Inclui um tom interno base64 para garantir que sempre exista algo para tocar
+        const builtInTone = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEAIlYAAESsAAACABAAZGF0YQAAAAA=';
+
         this.musicFiles = [
+            { name: 'Demo Tone', url: builtInTone },
             { name: 'Track 1', url: musicFolder + 'track1.mp3' },
             { name: 'Track 2', url: musicFolder + 'track2.mp3' },
             { name: 'Track 3', url: musicFolder + 'track3.mp3' },
@@ -108,6 +112,21 @@ export class AudioSystem {
 
     play() {
         if (!this.audioElement) return;
+
+        // Se nenhum track estiver carregado, usar o primeiro disponível
+        if (!this.currentTrack) {
+            if (!this.musicFiles || this.musicFiles.length === 0) {
+                this.loadMusicLibrary();
+            }
+            if (this.musicFiles && this.musicFiles.length > 0) {
+                this.loadTrack(this.musicFiles[0].url);
+            }
+        }
+
+        // Garantir que o AudioContext esteja ativo
+        if (this.audioContext && this.audioContext.state === 'suspended') {
+            this.audioContext.resume();
+        }
 
         this.audioElement.play().then(() => {
             this.isPlaying = true;

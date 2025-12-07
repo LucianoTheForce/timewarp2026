@@ -488,6 +488,39 @@ class PalcoParametrico {
             });
         }
 
+        const p5PanelsEnabled = document.getElementById('p5-panels-enabled');
+        if (p5PanelsEnabled) {
+            p5PanelsEnabled.checked = this.stageBuilder.params.p5PanelsEnabled;
+            p5PanelsEnabled.addEventListener('change', (e) => {
+                this.stageBuilder.setParam('p5PanelsEnabled', e.target.checked);
+                this.stageBuilder.rebuild();
+            });
+        }
+
+        this.setupSlider('p5-panels-x', 'p5-panels-x-val', (value) => {
+            this.stageBuilder.setParam('p5PanelsX', parseInt(value));
+            this.stageBuilder.rebuild();
+        });
+        this.setupSlider('p5-panels-y', 'p5-panels-y-val', (value) => {
+            this.stageBuilder.setParam('p5PanelsY', parseInt(value));
+            this.stageBuilder.rebuild();
+        });
+        this.setupSlider('p5-panels-start', 'p5-panels-start-val', (value) => {
+            this.stageBuilder.setParam('p5PanelsStart', parseFloat(value));
+            this.stageBuilder.rebuild();
+        });
+        this.setupSlider('p5-panels-end', 'p5-panels-end-val', (value) => {
+            this.stageBuilder.setParam('p5PanelsEnd', parseFloat(value));
+            this.stageBuilder.rebuild();
+        });
+        const p5PanelColor = document.getElementById('p5-panel-color');
+        if (p5PanelColor) {
+            p5PanelColor.addEventListener('input', (e) => {
+                const hex = parseInt(e.target.value.replace('#', '0x'), 16);
+                this.stageBuilder.setParam('p5PanelColor', hex);
+            });
+        }
+
         const laserAllTowers = document.getElementById('laser-all-towers');
         if (laserAllTowers) {
             laserAllTowers.checked = this.stageBuilder.params.laserAllTowers;
@@ -527,7 +560,8 @@ class PalcoParametrico {
             anim2: { speed: 0.6, thickness: 0.9, hue: 200 }, // lento azul
             anim3: { speed: 3.5, thickness: 1.5, hue: 300 }, // turbo magenta
             anim4: { speed: 0.1, thickness: 1.0, hue: 60 },  // quase estático âmbar
-            anim5: { speed: 1.3, thickness: 1.1, hue: 0 }    // médio vermelho
+            anim5: { speed: 1.3, thickness: 1.1, hue: 0 },   // médio vermelho
+            wave: { speed: 1.0, thickness: 1.0, hue: 150, animation: 'laser-wave' }
         };
         this.laserPosPresets = {
             pos1: { distance: 40, patternIndex: 0 }, // frente longa moderada
@@ -545,6 +579,11 @@ class PalcoParametrico {
                     if (preset.speed !== undefined) this.laserController.setSpeed(preset.speed);
                     if (preset.thickness !== undefined) this.laserController.setThickness(preset.thickness);
                     if (preset.hue !== undefined) this.laserController.setHue(preset.hue);
+                    if (preset.animation) {
+                        this.stageBuilder.setParam('laserAnimation', preset.animation);
+                    } else {
+                        this.stageBuilder.setParam('laserAnimation', 'audio-sync');
+                    }
                     this.laserController.resetSignatures();
                 }
             });
@@ -559,6 +598,14 @@ class PalcoParametrico {
                     if (preset.distance !== undefined) this.laserController.setDistance(preset.distance);
                     this.laserController.resetSignatures();
                 }
+            });
+        }
+
+        const laserWaveMode = document.getElementById('laser-wave-mode');
+        if (laserWaveMode) {
+            laserWaveMode.addEventListener('change', (e) => {
+                this.stageBuilder.setParam('laserWaveMode', e.target.value);
+                this.stageBuilder.setParam('laserAnimation', 'laser-wave');
             });
         }
 
