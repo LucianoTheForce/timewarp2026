@@ -1,5 +1,6 @@
 /**
- * Sync Manager - Sincroniza estado entre dispositivos via WebSocket
+ * Sync Manager - WebSocket broadcast between control (mobile) and stage (desktop)
+ * Uses native WebSocket talking to the Edge function at /api/socket.
  */
 export class SyncManager {
     constructor() {
@@ -7,111 +8,98 @@ export class SyncManager {
         this.connected = false;
         this.isController = false; // Mobile device acting as controller
         this.listeners = new Map();
+        this.reconnectTimer = null;
     }
 
     async connect() {
-        try {
-            // Importa Socket.io dinamicamente
-            const { io } = await import('https://cdn.socket.io/4.5.4/socket.io.esm.min.js');
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = `${protocol}//${window.location.host}/api/socket`;
 
-            // Conecta ao servidor WebSocket (Vercel ou local)
-            const socketUrl = window.location.origin;
-            this.socket = io(socketUrl, {
-                path: '/api/socket',
-                transports: ['websocket', 'polling']
+        return new Promise((resolve) => {
+            try {
+                this.socket = new WebSocket(wsUrl);
+            } catch (error) {
+                console.warn('Sync server not available, running standalone', error);
+                resolve(false);
+                return;
+            }
+
+            let resolved = false;
+            const finish = (ok) => {
+                if (resolved) return;
+                resolved = true;
+                resolve(ok);
+            };
+
+            this.socket.addEventListener('open', () => {
+                console.log('Connected to sync server (WebSocket)');
+                this.connected = true;
+                this.isController = window.innerWidth <= 900;
+                finish(true);
             });
 
-            this.socket.on('connect', () => {
-                console.log('✅ Connected to sync server');
-                this.connected = true;
+            this.socket.addEventListener('close', () => {
+                this.connected = false;
+                this.scheduleReconnect();
+                finish(false);
+            });
 
-                // Detecta se é mobile (controlador)
-                this.isController = window.innerWidth <= 900;
-
-                if (this.isController) {
-                    console.log('📱 Device mode: CONTROLLER (mobile)');
-                } else {
-                    console.log('🖥️ Device mode: DISPLAY (desktop)');
+            this.socket.addEventListener('error', (err) => {
+                console.warn('Sync socket error', err);
+                this.connected = false;
+                try {
+                    this.socket.close();
+                } catch (e) {
+                    /* ignore */
                 }
             });
 
-            this.socket.on('disconnect', () => {
-                console.log('❌ Disconnected from sync server');
-                this.connected = false;
+            this.socket.addEventListener('message', (event) => {
+                try {
+                    const payload = JSON.parse(event.data);
+                    if (!payload || !payload.type) return;
+                    this.emit(payload.type, payload.data);
+                } catch (e) {
+                    console.warn('Invalid sync message', e);
+                }
             });
-
-            // Listen for control changes from other devices
-            this.socket.on('control-change', (data) => {
-                this.emit('control-change', data);
-            });
-
-            this.socket.on('led-scene', (data) => {
-                this.emit('led-scene', data);
-            });
-
-            this.socket.on('light-scene', (data) => {
-                this.emit('light-scene', data);
-            });
-
-            this.socket.on('camera-control', (data) => {
-                this.emit('camera-control', data);
-            });
-
-            this.socket.on('music-control', (data) => {
-                this.emit('music-control', data);
-            });
-
-            this.socket.on('audio-data', (data) => {
-                this.emit('audio-data', data);
-            });
-
-            return true;
-        } catch (error) {
-            console.warn('⚠️ Sync server not available, running in standalone mode', error);
-            return false;
-        }
+        });
     }
 
     // Send control change to other devices
     sendControlChange(key, value) {
-        if (!this.connected || !this.socket) return;
-
-        this.socket.emit('control-change', { key, value });
+        this.sendMessage('control-change', { key, value });
     }
 
     // Send LED scene change
     sendLedScene(scene) {
-        if (!this.connected || !this.socket) return;
-
-        this.socket.emit('led-scene', { scene });
+        this.sendMessage('led-scene', { scene });
     }
 
     // Send light/laser scene change
     sendLightScene(scene) {
-        if (!this.connected || !this.socket) return;
-
-        this.socket.emit('light-scene', { scene });
+        this.sendMessage('light-scene', { scene });
     }
 
     // Send camera control
     sendCameraControl(action, data) {
-        if (!this.connected || !this.socket) return;
-
-        this.socket.emit('camera-control', { action, data });
+        this.sendMessage('camera-control', { action, data });
     }
 
     // Send music control
     sendMusicControl(action, data) {
-        if (!this.connected || !this.socket) return;
-
-        this.socket.emit('music-control', { action, data });
+        this.sendMessage('music-control', { action, data });
     }
 
     // Send audio data (from mobile if it's playing audio)
     sendAudioData(audioData) {
-        if (!this.connected || !this.socket) return;
+        this.sendMessage('audio-data', audioData);
+    }
 
-        this.socket.emit('audio-data', audioData);
+    sendMessage(type, data) {
+        if (!this.socket || this.socket.readyState !== WebSocket.OPEN) return;
+        const payload = JSON.stringify({ type, data });
+        this.socket.send(payload);
     }
 
     // Event listener pattern
@@ -135,14 +123,30 @@ export class SyncManager {
     emit(event, data) {
         if (!this.listeners.has(event)) return;
 
-        this.listeners.get(event).forEach(callback => {
+        this.listeners.get(event).forEach((callback) => {
             callback(data);
         });
     }
 
+    scheduleReconnect() {
+        if (this.reconnectTimer) return;
+        this.reconnectTimer = setTimeout(() => {
+            this.reconnectTimer = null;
+            this.connect();
+        }, 2000);
+    }
+
     disconnect() {
+        if (this.reconnectTimer) {
+            clearTimeout(this.reconnectTimer);
+            this.reconnectTimer = null;
+        }
         if (this.socket) {
-            this.socket.disconnect();
+            try {
+                this.socket.close();
+            } catch (e) {
+                /* ignore */
+            }
             this.socket = null;
         }
         this.connected = false;

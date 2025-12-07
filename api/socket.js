@@ -1,74 +1,40 @@
-// Vercel Serverless Function for Socket.io
-import { Server } from 'socket.io';
-
-let io;
-
-export default function handler(req, res) {
-    // Disable the default body parsing to allow the WebSocket upgrade
-    // when running on serverless platforms like Vercel.
-    // (Vercel/Next convention: export config alongside handler)
-    res.setHeader('Access-Control-Allow-Origin', '*');
-
-    if (!res.socket.server.io) {
-        console.log('Initializing Socket.io server...');
-
-        io = new Server(res.socket.server, {
-            path: '/api/socket',
-            addTrailingSlash: false,
-            cors: {
-                origin: '*',
-                methods: ['GET', 'POST']
-            }
-        });
-
-        io.on('connection', (socket) => {
-            console.log('Client connected:', socket.id);
-
-            // Broadcast control changes to all other clients
-            socket.on('control-change', (data) => {
-                console.log('Broadcasting control change:', data);
-                socket.broadcast.emit('control-change', data);
-            });
-
-            // LED scene change
-            socket.on('led-scene', (data) => {
-                socket.broadcast.emit('led-scene', data);
-            });
-
-            // Light/Laser scene change
-            socket.on('light-scene', (data) => {
-                socket.broadcast.emit('light-scene', data);
-            });
-
-            // Camera controls
-            socket.on('camera-control', (data) => {
-                socket.broadcast.emit('camera-control', data);
-            });
-
-            // Music controls
-            socket.on('music-control', (data) => {
-                socket.broadcast.emit('music-control', data);
-            });
-
-            // Audio data broadcast
-            socket.on('audio-data', (data) => {
-                socket.broadcast.emit('audio-data', data);
-            });
-
-            socket.on('disconnect', () => {
-                console.log('Client disconnected:', socket.id);
-            });
-        });
-
-        res.socket.server.io = io;
-    }
-
-    res.end();
-}
-
-// Required for Socket.io upgrade on Vercel
+// Edge WebSocket broadcast server for sync between control and stage
 export const config = {
-    api: {
-        bodyParser: false
-    }
+  runtime: 'edge'
 };
+
+let clients = [];
+
+export default function handler(req) {
+  if (req.headers.get('upgrade') !== 'websocket') {
+    return new Response('Upgrade to WebSocket expected', { status: 426 });
+  }
+
+  const { 0: client, 1: server } = new WebSocketPair();
+  const ws = server;
+  ws.accept();
+
+  clients.push(ws);
+
+  const broadcast = (data, sender) => {
+    clients.forEach((socket) => {
+      if (socket === sender) return;
+      if (socket.readyState === WebSocket.OPEN) {
+        socket.send(data);
+      }
+    });
+  };
+
+  ws.addEventListener('message', (event) => {
+    broadcast(event.data, ws);
+  });
+
+  const cleanup = () => {
+    clients = clients.filter((c) => c !== ws);
+  };
+
+  ws.addEventListener('close', cleanup);
+  ws.addEventListener('error', cleanup);
+
+  return new Response(null, { status: 101, webSocket: client });
+}
