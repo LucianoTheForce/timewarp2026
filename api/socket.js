@@ -1,40 +1,47 @@
-// Edge WebSocket broadcast server for sync between control and stage
+import { WebSocketServer, WebSocket } from 'ws';
+
+// Keep the server and client set alive across invocations
+let wss;
+const clients = new Set();
+
 export const config = {
-  runtime: 'edge'
+  api: {
+    bodyParser: false
+  }
 };
 
-let clients = [];
-
-export default function handler(req) {
-  if (req.headers.get('upgrade') !== 'websocket') {
-    return new Response('Upgrade to WebSocket expected', { status: 426 });
+export default function handler(req, res) {
+  if (req.headers.upgrade !== 'websocket') {
+    res.status(426).end('Upgrade Required');
+    return;
   }
 
-  const { 0: client, 1: server } = new WebSocketPair();
-  const ws = server;
-  ws.accept();
+  if (!wss) {
+    wss = new WebSocketServer({ noServer: true });
 
-  clients.push(ws);
+    wss.on('connection', (ws) => {
+      clients.add(ws);
 
-  const broadcast = (data, sender) => {
-    clients.forEach((socket) => {
-      if (socket === sender) return;
-      if (socket.readyState === WebSocket.OPEN) {
-        socket.send(data);
-      }
+      ws.on('message', (message) => {
+        // Fan-out to all other connected clients
+        clients.forEach((client) => {
+          if (client === ws) return;
+          if (client.readyState === WebSocket.OPEN) {
+            client.send(message);
+          }
+        });
+      });
+
+      const cleanup = () => {
+        clients.delete(ws);
+      };
+
+      ws.on('close', cleanup);
+      ws.on('error', cleanup);
     });
-  };
+  }
 
-  ws.addEventListener('message', (event) => {
-    broadcast(event.data, ws);
+  wss.handleUpgrade(req, req.socket, Buffer.alloc(0), (ws) => {
+    wss.emit('connection', ws, req);
   });
-
-  const cleanup = () => {
-    clients = clients.filter((c) => c !== ws);
-  };
-
-  ws.addEventListener('close', cleanup);
-  ws.addEventListener('error', cleanup);
-
-  return new Response(null, { status: 101, webSocket: client });
 }

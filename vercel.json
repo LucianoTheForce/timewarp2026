@@ -4,10 +4,5 @@
       "source": "/api/socket",
       "destination": "/api/socket.js"
     }
-  ],
-  "functions": {
-    "api/socket.js": {
-      "runtime": "edge"
-    }
-  }
+  ]
 }
