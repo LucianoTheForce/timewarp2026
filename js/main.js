@@ -1002,7 +1002,8 @@ class PalcoParametrico {
         };
 
         // Small QR in sidebar
-        drawQr(document.getElementById('qr-canvas'));
+        const sidebarCanvas = document.getElementById('qr-canvas');
+        drawQr(sidebarCanvas);
 
         // Fullscreen overlay QR
         const overlay = document.getElementById('qr-overlay');
@@ -1023,11 +1024,13 @@ class PalcoParametrico {
         }
 
         // Permitir abrir o controle no desktop ao clicar no QR
-        canvas.style.cursor = 'pointer';
-        canvas.title = 'Abrir controle remoto';
-        canvas.onclick = () => {
-            window.location.href = url;
-        };
+        if (sidebarCanvas) {
+            sidebarCanvas.style.cursor = 'pointer';
+            sidebarCanvas.title = 'Abrir controle remoto';
+            sidebarCanvas.onclick = () => {
+                window.location.href = url;
+            };
+        }
     }
 
     createSunsetSky() {
