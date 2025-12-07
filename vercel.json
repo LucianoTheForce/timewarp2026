@@ -3,6 +3,14 @@
     {
       "source": "/api/socket",
       "destination": "/api/socket.js"
+    },
+    {
+      "source": "/control",
+      "destination": "/control.html"
+    },
+    {
+      "source": "/control/:path*",
+      "destination": "/control.html"
     }
   ]
 }
