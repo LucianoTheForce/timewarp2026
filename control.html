@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Palco Timewarp - Control Center</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -26,10 +27,9 @@
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: linear-gradient(180deg, #0a0a1a 0%, #000000 100%);
+            background: radial-gradient(ellipse at top, #1a1a2e, #0a0a15);
             color: var(--light);
-            overflow-x: hidden;
-            overflow-y: auto;
+            overflow: hidden;
             height: 100vh;
             position: relative;
         }
@@ -67,26 +67,33 @@
             overflow: hidden;
         }
 
+        /* Close button */
         .close-btn {
             position: absolute;
-            top: 30px;
-            right: 30px;
-            width: 36px;
-            height: 36px;
+            top: 20px;
+            right: 20px;
+            width: 44px;
+            height: 44px;
             border-radius: 50%;
             background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border: none;
+            border: 1px solid rgba(255, 255, 255, 0.2);
             color: white;
-            font-size: 20px;
-            cursor: pointer;
+            font-size: 24px;
             display: flex;
             align-items: center;
             justify-content: center;
-            opacity: 0.8;
+            cursor: pointer;
+            opacity: 0;
+            transition: all 0.3s;
             z-index: 100;
         }
 
+        .close-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: scale(1.1);
+        }
+
+        /* Similar text */
         .similar-text {
             position: absolute;
             top: 50%;
@@ -95,7 +102,7 @@
             font-size: 36px;
             font-weight: 300;
             color: white;
-            opacity: 1;
+            opacity: 0;
             letter-spacing: -0.5px;
             z-index: 10;
         }
@@ -111,53 +118,60 @@
             background: radial-gradient(circle at center, rgba(100, 80, 150, 0.4) 0%, transparent 60%);
             z-index: 0;
             pointer-events: none;
+            opacity: 0;
         }
 
         /* Slider Container */
         .slider-container {
-            position: relative;
-            width: 100%;
+            position: absolute;
+            right: 0;
+            top: 0;
+            width: 400px;
             height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
             overflow: hidden;
+            z-index: 5;
+            perspective: 1200px;
         }
 
         .slider-track {
-            position: relative;
-            width: 100%;
-            height: 100%;
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
-            transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            gap: 0;
+            position: relative;
+            transform-style: preserve-3d;
         }
 
+        /* Slider Items */
         .slider-item {
-            position: relative;
+            position: absolute;
             border-radius: 50%;
             overflow: hidden;
-            transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-            flex-shrink: 0;
             cursor: pointer;
+            transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+            flex-shrink: 0;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            transform-style: preserve-3d;
+            will-change: transform, opacity;
         }
 
         .slider-item img {
             width: 100%;
             height: 100%;
             object-fit: cover;
-            display: block;
+            border-radius: 50%;
         }
 
-        /* Size states */
         .slider-item.tiny {
             width: 100px;
             height: 100px;
             opacity: 0.4;
             margin: 15px 0;
             filter: blur(2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
         }
 
         .slider-item.small {
@@ -166,6 +180,7 @@
             opacity: 0.6;
             margin: 20px 0;
             filter: blur(1px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
         }
 
         .slider-item.center {
@@ -191,220 +206,32 @@
             pointer-events: none;
         }
 
-        /* Center item ring */
-        .slider-item.center::after {
-            content: '';
-            position: absolute;
-            inset: -8px;
-            border-radius: 50%;
-            border: 2px solid rgba(255, 255, 255, 0.15);
-            z-index: -1;
+        .slider-item:hover {
+            transform: scale(1.05);
         }
 
-        .slider-item.label-visible .item-label {
-            opacity: 1;
+        .slider-item.center:hover {
+            transform: scale(1.02);
         }
 
+        /* Item label (shown on center item) */
         .item-label {
             position: absolute;
-            bottom: -30px;
+            bottom: -35px;
             left: 50%;
             transform: translateX(-50%);
-            font-size: 11px;
-            color: rgba(255,255,255,0.7);
-            text-transform: uppercase;
-            letter-spacing: 1px;
+            font-size: 14px;
+            font-weight: 600;
+            color: white;
+            text-align: center;
             white-space: nowrap;
             opacity: 0;
             transition: opacity 0.3s;
+            z-index: 2;
         }
 
-        /* Player View */
-        #player-view {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            background: linear-gradient(180deg, #7a5d8f 0%, #1a1a2e 100%);
-            z-index: 200;
-            opacity: 0;
-            pointer-events: none;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 60px 30px 40px;
-        }
-
-        #player-view.active {
+        .slider-item.center .item-label {
             opacity: 1;
-            pointer-events: all;
-        }
-
-        .player-header {
-            width: 100%;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 60px;
-        }
-
-        .back-arrow {
-            width: 40px;
-            height: 40px;
-            background: transparent;
-            border: none;
-            color: white;
-            font-size: 28px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .player-title {
-            flex: 1;
-            text-align: center;
-        }
-
-        .player-title h3 {
-            font-size: 18px;
-            font-weight: 400;
-            margin-bottom: 4px;
-        }
-
-        .player-title p {
-            font-size: 14px;
-            color: rgba(255,255,255,0.7);
-        }
-
-        .more-btn {
-            width: 40px;
-            height: 40px;
-            background: transparent;
-            border: none;
-            color: white;
-            font-size: 24px;
-            cursor: pointer;
-        }
-
-        .player-artwork-container {
-            position: relative;
-            width: 100%;
-            max-width: 400px;
-            aspect-ratio: 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 40px;
-        }
-
-        .player-artwork {
-            width: 280px;
-            height: 280px;
-            border-radius: 50%;
-            position: relative;
-            overflow: hidden;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
-        }
-
-        .artwork-ring {
-            position: absolute;
-            border-radius: 50%;
-            border: 2px solid rgba(255,255,255,0.1);
-        }
-
-        .artwork-ring.outer {
-            width: 380px;
-            height: 380px;
-        }
-
-        .artwork-ring.middle {
-            width: 340px;
-            height: 340px;
-        }
-
-        .player-time {
-            position: absolute;
-            bottom: -30px;
-            font-size: 14px;
-            color: white;
-        }
-
-        .side-artwork {
-            position: absolute;
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            overflow: hidden;
-            opacity: 0.6;
-        }
-
-        .side-artwork.left {
-            left: 0;
-            top: 50%;
-            transform: translateY(-50%);
-        }
-
-        .side-artwork.right {
-            right: 0;
-            top: 50%;
-            transform: translateY(-50%);
-        }
-
-        .player-controls {
-            width: 100%;
-            max-width: 400px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-top: 60px;
-            padding: 0 20px;
-        }
-
-        .control-btn {
-            background: transparent;
-            border: none;
-            color: white;
-            font-size: 28px;
-            cursor: pointer;
-            padding: 10px;
-            transition: transform 0.2s;
-        }
-
-        .control-btn:active {
-            transform: scale(0.9);
-        }
-
-        .control-btn.play-pause {
-            font-size: 48px;
-        }
-
-        .player-nav {
-            position: fixed;
-            bottom: 30px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0,0,0,0.6);
-            backdrop-filter: blur(20px);
-            border-radius: 50px;
-            padding: 20px 30px;
-            display: flex;
-            gap: 40px;
-            align-items: center;
-        }
-
-        .nav-btn {
-            background: transparent;
-            border: none;
-            color: rgba(255,255,255,0.6);
-            font-size: 24px;
-            cursor: pointer;
-            transition: color 0.3s;
-        }
-
-        .nav-btn.active {
-            color: white;
         }
 
         /* Category Detail View */
@@ -839,78 +666,31 @@
 
             <div class="slider-container">
                 <div class="slider-track" id="sliderTrack">
-                    <div class="slider-item tiny" data-index="0">
+                    <div class="slider-item tiny" data-index="0" data-category="light-scenes">
                         <img src="https://images.unsplash.com/photo-1682687220742-aba13b6e50ba?w=400&h=400&fit=crop" alt="Light Scenes">
+                        <span class="item-label">Light Scenes</span>
                     </div>
 
-                    <div class="slider-item small" data-index="1">
+                    <div class="slider-item small" data-index="1" data-category="music">
                         <img src="https://images.unsplash.com/photo-1682687221038-404cb8830901?w=400&h=400&fit=crop" alt="Music">
+                        <span class="item-label">Music</span>
                     </div>
 
-                    <div class="slider-item center" data-index="2">
+                    <div class="slider-item center" data-index="2" data-category="stage-views">
                         <img src="https://images.unsplash.com/photo-1682687220063-4742bd7fd538?w=600&h=600&fit=crop" alt="Stage Views">
                         <span class="item-label">Stage Views</span>
                     </div>
 
-                    <div class="slider-item small" data-index="3">
+                    <div class="slider-item small" data-index="3" data-category="stage-options">
                         <img src="https://images.unsplash.com/photo-1682687220801-eef408f95d71?w=400&h=400&fit=crop" alt="Stage Options">
+                        <span class="item-label">Stage Options</span>
                     </div>
 
-                    <div class="slider-item tiny" data-index="4">
+                    <div class="slider-item tiny" data-index="4" data-category="light-control">
                         <img src="https://images.unsplash.com/photo-1682687220067-dced9a881b56?w=400&h=400&fit=crop" alt="Light Control">
-                    </div>
-
-                    <div class="slider-item tiny" data-index="5">
-                        <img src="https://images.unsplash.com/photo-1682687220923-c58b9a4592ae?w=400&h=400&fit=crop" alt="Rider">
+                        <span class="item-label">Light Control</span>
                     </div>
                 </div>
-            </div>
-        </div>
-
-        <!-- Player View -->
-        <div id="player-view">
-            <div class="player-header">
-                <button class="back-arrow" onclick="closePlayer()">‹</button>
-                <div class="player-title">
-                    <h3>Skin</h3>
-                    <p>Flume</p>
-                </div>
-                <button class="more-btn">⋮</button>
-            </div>
-
-            <div class="player-artwork-container">
-                <div class="artwork-ring outer"></div>
-                <div class="artwork-ring middle"></div>
-
-                <div class="side-artwork left">
-                    <div class="bubble-icon">🌊</div>
-                </div>
-
-                <div class="player-artwork">
-                    <div class="bubble-icon" style="font-size: 120px;">🌸</div>
-                </div>
-
-                <div class="side-artwork right">
-                    <div class="bubble-icon">🌈</div>
-                </div>
-
-                <div class="player-time">3:23</div>
-            </div>
-
-            <div class="player-controls">
-                <button class="control-btn">🔀</button>
-                <button class="control-btn">⏮</button>
-                <button class="control-btn play-pause">⏸</button>
-                <button class="control-btn">⏭</button>
-                <button class="control-btn">🔁</button>
-            </div>
-
-            <div class="player-nav">
-                <button class="nav-btn">🏠</button>
-                <button class="nav-btn">📋</button>
-                <button class="nav-btn active">🎵</button>
-                <button class="nav-btn">📊</button>
-                <button class="nav-btn">🔔</button>
             </div>
         </div>
 
@@ -1305,7 +1085,6 @@
         </div>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.4/gsap.min.js"></script>
     <script src="/js/control-app.js"></script>
 </body>
 </html>

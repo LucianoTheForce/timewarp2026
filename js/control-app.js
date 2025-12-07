@@ -1,17 +1,6 @@
-// GSAP is loaded via CDN in the HTML file
-
 class ControlApp {
     constructor() {
         this.currentCategory = null;
-        this.waitForGSAP();
-    }
-
-    async waitForGSAP() {
-        // Wait for GSAP to load
-        if (typeof gsap === 'undefined') {
-            setTimeout(() => this.waitForGSAP(), 50);
-            return;
-        }
         this.init();
     }
 
@@ -31,35 +20,11 @@ class ControlApp {
         // Setup slider interactions
         this.setupSliders();
 
+        // Setup vertical category slider
+        this.setupVerticalSlider();
+
         // FPS Counter
         this.startFPSCounter();
-
-        // Notify main app that control page is open
-        this.notifyControlOpen();
-    }
-
-    notifyControlOpen() {
-        // Notify main app via Upstash relay
-        fetch('/api/emit', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ type: 'control-open', data: { ts: Date.now() } })
-        }).catch(() => {});
-
-        // Also notify via BroadcastChannel for same-device cases
-        try {
-            const bc = new BroadcastChannel('palco-control');
-            bc.postMessage({ type: 'control-open' });
-        } catch (e) {
-            /* ignore */
-        }
-
-        // And postMessage to opener/parent if exists
-        if (window.opener) {
-            window.opener.postMessage({ type: 'control-open' }, '*');
-        } else if (window.parent !== window) {
-            window.parent.postMessage({ type: 'control-open' }, '*');
-        }
     }
 
     initBackground() {
@@ -141,28 +106,21 @@ class ControlApp {
             ease: 'power3.out'
         }, '-=0.3');
 
-        // Animate bubbles with stagger from top to bottom
-        timeline.to('.category-bubble', {
+        // Animate slider items with stagger
+        timeline.to('.slider-item', {
             opacity: 1,
-            x: 0,
-            duration: 1,
-            stagger: 0.15,
+            scale: 1,
+            duration: 0.8,
+            stagger: 0.1,
             ease: 'power3.out'
         }, '-=0.4');
 
-        // Add subtle floating animation to bubbles
-        gsap.to('.category-bubble', {
-            y: '+=8',
-            x: '+=4',
-            duration: 3,
-            repeat: -1,
-            yoyo: true,
-            ease: 'sine.inOut',
-            stagger: {
-                each: 0.3,
-                from: 'random'
-            }
-        });
+        // Animate gradient background
+        timeline.to('.gradient-bg', {
+            opacity: 1,
+            duration: 1.2,
+            ease: 'power2.out'
+        }, '-=0.6');
     }
 
     setupEventListeners() {
@@ -205,7 +163,7 @@ class ControlApp {
                     { scale: 1, duration: 0.3, ease: 'elastic.out(1, 0.5)' }
                 );
 
-                // Send to main app
+                // TODO: Send to main app
                 const effect = card.dataset.ledEffect;
                 console.log('LED Effect:', effect);
                 this.sendCommand('led-effect', effect);
@@ -283,40 +241,6 @@ class ControlApp {
         window.closeCategory = () => {
             this.closeCategory();
         };
-
-        window.closePlayer = () => {
-            this.closePlayer();
-        };
-    }
-
-    closePlayer() {
-        const playerView = document.getElementById('player-view');
-
-        // Animate player out
-        gsap.to(playerView, {
-            opacity: 0,
-            duration: 0.4,
-            onComplete: () => {
-                playerView.classList.remove('active');
-
-                // Show home again
-                const home = document.getElementById('home');
-                home.style.display = 'flex';
-                gsap.fromTo(home,
-                    { opacity: 0 },
-                    { opacity: 1, duration: 0.5 }
-                );
-
-                // Reset bubbles opacity
-                gsap.to('.category-bubble', {
-                    opacity: 1,
-                    duration: 0.5,
-                    stagger: 0.1
-                });
-            }
-        });
-
-        this.currentCategory = null;
     }
 
     setupSliders() {
@@ -360,70 +284,43 @@ class ControlApp {
     }
 
     openCategory(category) {
-        // Get the clicked bubble
-        const bubble = event.target.closest('.category-bubble');
-        if (!bubble) return;
-
         this.currentCategory = category;
+        const viewId = category + '-view';
+        const view = document.getElementById(viewId);
 
-        // Get bubble position
-        const rect = bubble.getBoundingClientRect();
-        const centerX = window.innerWidth / 2;
-        const centerY = window.innerHeight / 2;
+        if (!view) return;
 
-        // Clone the bubble for animation
-        const clone = bubble.cloneNode(true);
-        clone.style.position = 'fixed';
-        clone.style.left = rect.left + 'px';
-        clone.style.top = rect.top + 'px';
-        clone.style.width = rect.width + 'px';
-        clone.style.height = rect.height + 'px';
-        clone.style.zIndex = '1000';
-        clone.style.opacity = '1';
-        document.body.appendChild(clone);
-
-        // Hide original bubble
-        gsap.to(bubble, { opacity: 0, duration: 0.3 });
-
-        // Animate clone to center and scale down
-        const targetSize = 280;
-        gsap.to(clone, {
-            left: centerX - targetSize / 2,
-            top: centerY - targetSize / 2 - 50,
-            width: targetSize,
-            height: targetSize,
-            duration: 0.8,
-            ease: 'power3.inOut',
+        // Animate home out
+        gsap.to('#home', {
+            opacity: 0,
+            scale: 0.9,
+            duration: 0.4,
+            ease: 'power2.in',
             onComplete: () => {
-                // Show player view
-                const playerView = document.getElementById('player-view');
-                playerView.classList.add('active');
-
-                gsap.fromTo(playerView,
-                    { opacity: 0 },
-                    { opacity: 1, duration: 0.5 }
-                );
-
-                // Fade out clone
-                gsap.to(clone, {
-                    opacity: 0,
-                    duration: 0.3,
-                    delay: 0.2,
-                    onComplete: () => {
-                        clone.remove();
-                    }
-                });
-
-                // Hide home
-                gsap.to('#home', {
-                    opacity: 0,
-                    duration: 0.4,
-                    onComplete: () => {
-                        document.getElementById('home').style.display = 'none';
-                    }
-                });
+                document.getElementById('home').style.pointerEvents = 'none';
             }
         });
+
+        // Animate category view in
+        view.classList.add('active');
+        gsap.fromTo(view,
+            { opacity: 0, y: 50 },
+            { opacity: 1, y: 0, duration: 0.5, ease: 'power3.out', delay: 0.2 }
+        );
+
+        // Animate category content
+        const content = view.querySelector('.category-content');
+        gsap.fromTo(content.children,
+            { opacity: 0, y: 30 },
+            {
+                opacity: 1,
+                y: 0,
+                duration: 0.6,
+                stagger: 0.1,
+                ease: 'power2.out',
+                delay: 0.4
+            }
+        );
     }
 
     closeCategory() {
@@ -470,18 +367,11 @@ class ControlApp {
 
     sendCommand(type, data) {
         // This will communicate with the main 3D app
+        // For now, just log
         console.log('Command:', type, data);
 
-        // Use postMessage to communicate with parent window or iframe
-        if (window.opener) {
-            window.opener.postMessage({ type, data }, '*');
-        } else if (window.parent !== window) {
-            window.parent.postMessage({ type, data }, '*');
-        }
-
-        // Also broadcast to same origin
-        const bc = new BroadcastChannel('palco-control');
-        bc.postMessage({ type, data });
+        // TODO: Implement WebSocket or BroadcastChannel communication
+        // window.parent.postMessage({ type, data }, '*');
     }
 
     exportConfig() {
@@ -489,7 +379,6 @@ class ControlApp {
             timestamp: new Date().toISOString(),
             towers: document.getElementById('tower-count')?.value,
             ledIntensity: document.getElementById('led-intensity')?.value,
-            animationSpeed: document.getElementById('animation-speed')?.value,
             // Add all other parameters
         };
 
@@ -504,13 +393,10 @@ class ControlApp {
         URL.revokeObjectURL(url);
 
         // Show success animation
-        const badge = document.querySelector('.stats-badge');
-        if (badge) {
-            gsap.fromTo(badge,
-                { scale: 1.2, backgroundColor: 'rgba(78, 205, 196, 0.5)' },
-                { scale: 1, backgroundColor: 'rgba(10, 10, 21, 0.9)', duration: 0.5 }
-            );
-        }
+        gsap.fromTo('.stats-badge',
+            { scale: 1.2, backgroundColor: 'rgba(78, 205, 196, 0.5)' },
+            { scale: 1, backgroundColor: 'rgba(10, 10, 21, 0.9)', duration: 0.5 }
+        );
     }
 
     startFPSCounter() {
@@ -524,10 +410,7 @@ class ControlApp {
 
             if (now >= lastTime + 1000) {
                 fps = Math.round((frames * 1000) / (now - lastTime));
-                const counter = document.getElementById('fps-counter');
-                if (counter) {
-                    counter.textContent = fps;
-                }
+                document.getElementById('fps-counter').textContent = fps;
                 frames = 0;
                 lastTime = now;
             }
@@ -536,6 +419,210 @@ class ControlApp {
         };
 
         updateFPS();
+    }
+
+    setupVerticalSlider() {
+        const sliderContainer = document.querySelector('.slider-container');
+        const sliderTrack = document.getElementById('sliderTrack');
+        const originalItems = Array.from(document.querySelectorAll('.slider-item'));
+
+        if (!sliderContainer || !sliderTrack || originalItems.length === 0) return;
+
+        const itemCount = originalItems.length;
+        let rotation = 0; // Current rotation angle
+        let targetRotation = 0;
+        let isDragging = false;
+        let isActuallyDragging = false;
+        let startY = 0;
+        let lastY = 0;
+        let velocity = 0;
+        let lastTime = Date.now();
+
+        // Radius of the wheel (distance from center)
+        const radius = 300;
+        const angleStep = (2 * Math.PI) / itemCount; // 360 degrees / number of items
+
+        // Position items on the 3D wheel
+        const updateWheel = () => {
+            originalItems.forEach((item, index) => {
+                // Calculate angle for this item (infinite rotation)
+                const angle = rotation + (index * angleStep);
+
+                // Calculate 3D position on the wheel
+                const y = Math.sin(angle) * radius;
+                const z = Math.cos(angle) * radius;
+
+                // Calculate scale based on Z position (closer = bigger)
+                const scale = 0.5 + (z + radius) / (radius * 2) * 0.5;
+
+                // Calculate opacity based on position
+                const opacity = Math.max(0.2, Math.min(1, (z + radius) / (radius * 1.5)));
+
+                // Determine size class based on position
+                // Item closest to front (z closest to radius) is center
+                const distanceFromFront = Math.abs(Math.cos(angle) - 1);
+
+                // Remove all classes
+                item.classList.remove('tiny', 'small', 'center');
+
+                // Add appropriate class
+                if (distanceFromFront < 0.3) {
+                    item.classList.add('center');
+                } else if (distanceFromFront < 0.8) {
+                    item.classList.add('small');
+                } else {
+                    item.classList.add('tiny');
+                }
+
+                // Apply 3D transform
+                gsap.set(item, {
+                    y: y,
+                    z: z,
+                    scale: scale,
+                    opacity: opacity,
+                    rotateX: 0,
+                    zIndex: Math.round(z)
+                });
+            });
+        };
+
+        // Animation loop
+        const animate = () => {
+            // Smooth rotation towards target
+            rotation += (targetRotation - rotation) * 0.1;
+
+            // Apply velocity decay when not dragging
+            if (!isDragging && Math.abs(velocity) > 0.001) {
+                targetRotation += velocity;
+                velocity *= 0.95; // Friction
+            }
+
+            updateWheel();
+            requestAnimationFrame(animate);
+        };
+
+        // Handle touch/mouse start
+        const handleStart = (e) => {
+            isDragging = true;
+            isActuallyDragging = false;
+            startY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
+            lastY = startY;
+            lastTime = Date.now();
+            velocity = 0;
+
+            if (e.type.includes('mouse')) {
+                sliderContainer.style.cursor = 'grabbing';
+            }
+        };
+
+        // Handle touch/mouse move
+        const handleMove = (e) => {
+            if (!isDragging) return;
+
+            const now = Date.now();
+            const deltaTime = now - lastTime;
+            const currentY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
+            const deltaY = currentY - lastY;
+            const totalDelta = currentY - startY;
+
+            // Mark as actually dragging if moved more than 5px
+            if (Math.abs(totalDelta) > 5) {
+                isActuallyDragging = true;
+                e.preventDefault();
+                e.stopPropagation();
+            }
+
+            if (!isActuallyDragging) return;
+
+            // Calculate velocity for momentum
+            if (deltaTime > 0) {
+                velocity = (deltaY / deltaTime) * 0.01; // Convert to rotation velocity
+            }
+
+            // Rotate the wheel based on drag
+            targetRotation -= deltaY * 0.005; // Sensitivity
+
+            lastY = currentY;
+            lastTime = now;
+        };
+
+        // Handle touch/mouse end
+        const handleEnd = () => {
+            if (!isDragging) return;
+
+            const wasDragging = isActuallyDragging;
+            isDragging = false;
+            isActuallyDragging = false;
+            sliderContainer.style.cursor = 'grab';
+
+            if (!wasDragging) {
+                // Was a click - snap to nearest item
+                const nearestAngle = Math.round(targetRotation / angleStep) * angleStep;
+                targetRotation = nearestAngle;
+                velocity = 0;
+                return;
+            }
+
+            // Apply momentum and snap to nearest
+            targetRotation += velocity * 50;
+            const nearestAngle = Math.round(targetRotation / angleStep) * angleStep;
+            targetRotation = nearestAngle;
+        };
+
+        // Click on slider items
+        originalItems.forEach((item, index) => {
+            item.addEventListener('click', (e) => {
+                // Don't handle click if it was part of a drag
+                if (isActuallyDragging) return;
+
+                // Check if this item is currently centered
+                const angle = rotation + (index * angleStep);
+                const distanceFromFront = Math.abs(Math.cos(angle) - 1);
+
+                if (distanceFromFront < 0.3) {
+                    // Open category view
+                    const category = item.dataset.category || 'stage-views';
+                    this.openCategory(category);
+                } else {
+                    // Snap to this item
+                    const targetAngle = -(index * angleStep);
+                    targetRotation = targetAngle;
+                    velocity = 0;
+                }
+            });
+        });
+
+        // Mouse events
+        sliderContainer.addEventListener('mousedown', handleStart);
+        sliderContainer.addEventListener('mousemove', handleMove);
+        sliderContainer.addEventListener('mouseup', handleEnd);
+        sliderContainer.addEventListener('mouseleave', handleEnd);
+
+        // Touch events
+        sliderContainer.addEventListener('touchstart', handleStart, { passive: false });
+        sliderContainer.addEventListener('touchmove', handleMove, { passive: false });
+        sliderContainer.addEventListener('touchend', handleEnd);
+        sliderContainer.addEventListener('touchcancel', handleEnd);
+
+        // Mouse wheel support (infinite)
+        sliderContainer.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+
+            // Rotate wheel based on scroll
+            targetRotation -= e.deltaY * 0.002;
+
+            // Snap to nearest item
+            const nearestAngle = Math.round(targetRotation / angleStep) * angleStep;
+            targetRotation = nearestAngle;
+            velocity = 0;
+        }, { passive: false });
+
+        // Initial setup
+        sliderContainer.style.cursor = 'grab';
+
+        // Start animation loop
+        animate();
     }
 }
 
