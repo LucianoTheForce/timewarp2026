@@ -1,6 +1,7 @@
 export const config = { runtime: 'edge' };
 
-const CHANNEL = 'timewarp-sync';
+const STREAM = 'timewarp-stream';
+const MAXLEN = 500;
 
 export default async function handler(req) {
   if (req.method !== 'POST') {
@@ -10,8 +11,9 @@ export default async function handler(req) {
   try {
     const body = await req.json();
     const message = JSON.stringify(body);
+    const encoded = encodeURIComponent(message);
 
-    const url = `${process.env.UPSTASH_REDIS_REST_URL}/publish/${CHANNEL}/${encodeURIComponent(message)}`;
+    const url = `${process.env.UPSTASH_REDIS_REST_URL}/xadd/${STREAM}/maxlen/~/${MAXLEN}/*/data/${encoded}`;
     const res = await fetch(url, {
       method: 'POST',
       headers: {

@@ -1,54 +1,58 @@
 /**
- * Sync Manager - usa Upstash Redis (SSE + REST) para sincronizar control/stage
+ * Sync Manager - usa Upstash Redis (polling REST) para sincronizar control/stage
  */
 export class SyncManager {
     constructor() {
         this.connected = false;
         this.isController = false;
         this.listeners = new Map();
-        this.eventSource = null;
-        this.reconnectTimer = null;
+        this.cursor = null;
+        this.pollTimer = null;
     }
 
     async connect() {
         this.isController = window.innerWidth <= 900;
-        this.openEventSource();
+        await this.initCursor();
+        this.connected = true;
+        this.startPolling();
         return true;
     }
 
-    openEventSource() {
-        if (this.eventSource) {
-            this.eventSource.close();
-            this.eventSource = null;
-        }
-
+    async initCursor() {
         try {
-            this.eventSource = new EventSource('/api/events');
+            const res = await fetch('/api/events');
+            const data = await res.json();
+            this.cursor = data.cursor || '0-0';
         } catch (err) {
-            console.warn('Failed to open event stream', err);
-            this.scheduleReconnect();
-            return;
+            console.warn('Failed to init cursor', err);
+            this.cursor = '0-0';
         }
+    }
 
-        this.eventSource.addEventListener('open', () => {
-            this.connected = true;
-        });
-
-        this.eventSource.addEventListener('error', () => {
-            this.connected = false;
-            this.scheduleReconnect();
-        });
-
-        this.eventSource.addEventListener('message', (event) => {
-            if (!event.data) return;
+    startPolling() {
+        const poll = async () => {
             try {
-                const payload = JSON.parse(event.data);
-                if (!payload || !payload.type) return;
-                this.emit(payload.type, payload.data);
-            } catch (e) {
-                // ignore invalid message
+                const url = `/api/events?cursor=${encodeURIComponent(this.cursor || '')}`;
+                const res = await fetch(url, { cache: 'no-store' });
+                if (!res.ok) throw new Error('poll failed');
+                const payload = await res.json();
+                if (payload.cursor) this.cursor = payload.cursor;
+
+                if (Array.isArray(payload.events)) {
+                    payload.events.forEach((evt) => {
+                        if (evt && evt.payload && evt.payload.type) {
+                            this.emit(evt.payload.type, evt.payload.data);
+                        }
+                    });
+                }
+            } catch (err) {
+                // ignore and retry
+            } finally {
+                this.pollTimer = setTimeout(poll, 800);
             }
-        });
+        };
+
+        poll();
     }
 
     async sendMessage(type, data) {
@@ -121,22 +125,10 @@ export class SyncManager {
         });
     }
 
-    scheduleReconnect() {
-        if (this.reconnectTimer) return;
-        this.reconnectTimer = setTimeout(() => {
-            this.reconnectTimer = null;
-            this.openEventSource();
-        }, 2000);
-    }
-
     disconnect() {
-        if (this.reconnectTimer) {
-            clearTimeout(this.reconnectTimer);
-            this.reconnectTimer = null;
-        }
-        if (this.eventSource) {
-            this.eventSource.close();
-            this.eventSource = null;
+        if (this.pollTimer) {
+            clearTimeout(this.pollTimer);
+            this.pollTimer = null;
         }
         this.connected = false;
     }
