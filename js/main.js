@@ -1010,26 +1010,34 @@ class PalcoParametrico {
         const bigCanvas = document.getElementById('qr-canvas-big');
         drawQr(bigCanvas);
 
+        const handleQrPointer = (event) => {
+            const isTouch = event.pointerType === 'touch' || navigator.maxTouchPoints > 0;
+            if (isTouch) {
+                window.location.href = url;
+            } else {
+                this.hideQrOverlay();
+            }
+        };
+
         if (bigCanvas) {
             bigCanvas.style.cursor = 'pointer';
-            bigCanvas.onclick = () => {
-                window.location.href = url;
-            };
+            bigCanvas.addEventListener('pointerdown', handleQrPointer);
         }
 
         if (overlay) {
-            overlay.addEventListener('click', () => {
-                window.location.href = url;
-            });
+            overlay.addEventListener('pointerdown', handleQrPointer);
         }
 
-        // Permitir abrir o controle no desktop ao clicar no QR
+        // Permitir interação com QR pequeno: só abre no mobile; no desktop não redireciona
         if (sidebarCanvas) {
             sidebarCanvas.style.cursor = 'pointer';
             sidebarCanvas.title = 'Abrir controle remoto';
-            sidebarCanvas.onclick = () => {
-                window.location.href = url;
-            };
+            sidebarCanvas.addEventListener('pointerdown', (event) => {
+                const isTouch = event.pointerType === 'touch' || navigator.maxTouchPoints > 0;
+                if (isTouch) {
+                    window.location.href = url;
+                }
+            });
         }
     }
 
