@@ -1014,6 +1014,7 @@ class PalcoParametrico {
             const isTouch = event.pointerType === 'touch' || navigator.maxTouchPoints > 0;
             if (isTouch) {
                 window.location.href = url;
+                this.hideQrOverlay();
             } else {
                 this.hideQrOverlay();
             }
