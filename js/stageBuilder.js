@@ -123,16 +123,18 @@ export class StageBuilder {
             riserHeight: 1.0,
             stageFrontBandsEnabled: true,
             stageRearBandsEnabled: true,
-            stageBandCount: 3,
+            stageBandCount: 6,
             stageBandHeight: 0.6,
             stageBandGap: 0.15,
             stageBandDepth: 0.12,
+            stageBandStartHeight: 2.2, // acima do deck
+            stageBandEndHeight: 6.3,   // altura alvo máxima
             laserHeight: 20,
             laserColor: 0x00ff00,
             laserAnimation: 'static', // static, sweep, rotate, pulse, chase, random
             laserSpeed: 1.0,
             stageLasersEnabled: true, // lasers no palco
-            stageLaserCount: 6,
+            stageLaserCount: 20,
             laserAllTowers: true, // laser em todas as torres
             p5LightsEnabled: true, // luzes P5 nos cubos
             p5LightColor: 0xffffff,
@@ -172,7 +174,7 @@ export class StageBuilder {
             ledExternalColor: 0xff0000, // 16711680
             ledExternalIntensity: 6.0,
             hideRearPanels: true,
-            hideFirstLevelPanels: false,
+            hideFirstLevelPanels: true,
 
             // LED effects
             ledEffect: 'wave',
@@ -214,7 +216,7 @@ export class StageBuilder {
             roughness: 0.2
         });
 
-        // Painel LED com textura e emissao apenas na face frontal (verso sem luz)
+        // Painel LED com textura e emissao apenas na face frontal
         this.ledBoxMaterial = new THREE.MeshStandardMaterial({
             color: 0x111111,
             map: ledTexture,
@@ -599,9 +601,21 @@ export class StageBuilder {
     getStats() {
         const boxPanels = this.allLedPanels.filter(p => p.userData.type === 'ledBoxTruss').length;
         const extPanels = this.allLedPanels.filter(p => p.userData.type === 'ledExternal').length;
+        const stageFrontPanels = this.allLedPanels.filter(p => p.userData.type === 'ledStageFront').length;
+        const stageRearPanels = this.allLedPanels.filter(p => p.userData.type === 'ledStageRear').length;
+
         const boxArea = boxPanels * 0.5 * 0.5;
         const extArea = extPanels * (this.params.ledExternalWidth || 1.0) * (this.params.ledExternalHeight || 0.5);
-        const totalArea = boxArea + extArea;
+
+        const stageAreaCalc = (mesh) => {
+            if (!mesh.geometry || !mesh.geometry.parameters) return 0;
+            const { width, height } = mesh.geometry.parameters;
+            return (width || 0) * (height || 0);
+        };
+        const stageFrontArea = this.allLedPanels.filter(p => p.userData.type === 'ledStageFront').reduce((acc, m) => acc + stageAreaCalc(m), 0);
+        const stageRearArea = this.allLedPanels.filter(p => p.userData.type === 'ledStageRear').reduce((acc, m) => acc + stageAreaCalc(m), 0);
+
+        const totalArea = boxArea + extArea + stageFrontArea + stageRearArea;
 
         const deckBox = new THREE.Box3().setFromObject(this.stageDeck);
         const stageWidth = isFinite(deckBox.max.x) ? (deckBox.max.x - deckBox.min.x) : 0;
@@ -619,9 +633,13 @@ export class StageBuilder {
             leds: {
                 boxPanels,
                 externalPanels: extPanels,
+                stageFrontPanels,
+                stageRearPanels,
                 totalPanels: boxPanels + extPanels,
                 boxArea,
                 externalArea: extArea,
+                stageFrontArea,
+                stageRearArea,
                 totalArea
             },
             stage: {
@@ -1247,22 +1265,24 @@ export class StageBuilder {
             const matBase = isFront ? this.stageFrontLedMaterial : this.stageRearLedMaterial;
             const zPos = isFront ? zFront : zRear;
 
-            // Distribuir em 3 níveis: baixo, meio, alto
-            const scaffoldHeight = isFinite(scaffoldBox.max.y) ? scaffoldBox.max.y - this.params.deckHeight : 12;
-            const levels = [
-                this.params.deckHeight + bandH / 2,  // baixo
-                this.params.deckHeight + scaffoldHeight * 0.5,  // meio
-                this.params.deckHeight + scaffoldHeight * 0.9   // alto
-            ];
+            const targetStart = this.params.deckHeight + (this.params.stageBandStartHeight || 0.3);
+            const targetEnd = this.params.deckHeight + (this.params.stageBandEndHeight || 8.0);
+            const maxY = isFinite(scaffoldBox.max.y) ? scaffoldBox.max.y : targetEnd;
+            const startY = Math.min(targetStart, maxY);
+            const endY = Math.min(targetEnd, maxY);
+            const effectiveCount = Math.max(1, bandCount);
 
-            levels.forEach((yPos, i) => {
+            for (let i = 0; i < effectiveCount; i++) {
+                const t = (effectiveCount === 1) ? 0.5 : (i / (effectiveCount - 1));
+                const yPos = startY + (endY - startY) * t;
                 const geom = new THREE.BoxGeometry(width, bandH, bandDepth);
                 const mesh = new THREE.Mesh(geom, matBase.clone());
                 mesh.position.set(centerX, yPos, zPos);
-                mesh.userData.type = 'stageBand';
-                mesh.userData.level = i; // 0=baixo, 1=meio, 2=alto
+                mesh.userData.type = isFront ? 'ledStageFront' : 'ledStageRear';
+                mesh.userData.level = i;
                 this.stageBandsGroup.add(mesh);
-            });
+                this.allLedPanels.push(mesh);
+            }
         };
 
         if (this.params.stageFrontBandsEnabled) addBands(true);

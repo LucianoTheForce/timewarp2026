@@ -567,10 +567,10 @@
 
         <div class="section-divider"></div>
 
-        <h3>LED Box Truss Central (Q50)</h3>
+        <h3>LED Sólido (Box Truss Central)</h3>
 
         <div class="info-box">
-            <strong>Modulos 50x50cm</strong> no box truss central de cada torre
+            <strong>Módulos 50x50cm</strong> no box truss central de cada torre
         </div>
 
         <div class="checkbox-group">
@@ -589,18 +589,18 @@
         </div>
 
         <div class="control-group color-picker-wrapper">
-            <label>Cor LED BoxTruss</label>
+            <label>Cor LED S\u00f3lido</label>
             <input type="color" id="led-color-box" value="#ff0066">
         </div>
 
         <div class="control-group">
-            <label>Intensidade BoxTruss <span class="value-display" id="led-intensity-box-val">6.0</span></label>
-            <input type="range" id="led-intensity-box" min="0" max="6" value="6" step="0.1">
+            <label>Intensidade S\u00f3lido <span class="value-display" id="led-intensity-box-val">6.0</span></label>
+            <input type="range" id="led-intensity-box" min="0" max="12" value="6" step="0.1">
         </div>
 
         <div class="section-divider"></div>
 
-        <h3>LED Andaimes Externos</h3>
+        <h3>LED Transparente (Andaimes Externos)</h3>
 
         <div class="info-box">
             <strong>LR3.9-7.8:</strong> 1000x500mm | Peso: ~6kg
@@ -636,13 +636,13 @@
         </div>
 
         <div class="control-group color-picker-wrapper">
-            <label>Cor LED Externo</label>
+            <label>Cor LED Transparente</label>
             <input type="color" id="led-color-external" value="#ff0000">
         </div>
 
         <div class="control-group">
-            <label>Intensidade Externo <span class="value-display" id="led-intensity-external-val">6.0</span></label>
-            <input type="range" id="led-intensity-external" min="0" max="6" value="6" step="0.1">
+            <label>Intensidade Transparente <span class="value-display" id="led-intensity-external-val">6.0</span></label>
+            <input type="range" id="led-intensity-external" min="0" max="12" value="6" step="0.1">
         </div>
 
         <div class="section-divider"></div>
@@ -690,7 +690,7 @@
 
         <div class="control-group">
             <label>Intensidade Global <span class="value-display" id="led-intensity-val">1.4</span></label>
-            <input type="range" id="led-intensity" min="0" max="6" value="1.4" step="0.1">
+            <input type="range" id="led-intensity" min="0" max="12" value="1.4" step="0.1">
         </div>
 
         <div class="control-group">
@@ -713,9 +713,33 @@
             <input type="checkbox" id="laser-all-towers" checked>
             <label>Laser em todas as torres</label>
         </div>
+        <div class="control-group color-picker-wrapper">
+            <label>Cor dos Lasers</label>
+            <input type="color" id="laser-color" value="#00ff00">
+        </div>
         <div class="control-group">
-            <label>Qtd lasers no palco traseiro <span class="value-display" id="stage-laser-count-val">6</span></label>
-            <input type="range" id="stage-laser-count" min="1" max="20" value="6" step="1">
+            <label>Qtd lasers no palco traseiro <span class="value-display" id="stage-laser-count-val">20</span></label>
+            <input type="range" id="stage-laser-count" min="1" max="30" value="20" step="1">
+        </div>
+        <div class="control-group">
+            <label>Cena de Animação (Lasers)</label>
+            <select id="laser-anim-preset">
+                <option value="anim1">Anim 1 - Pulse rápido</option>
+                <option value="anim2">Anim 2 - Lento suave</option>
+                <option value="anim3">Anim 3 - Turbo</option>
+                <option value="anim4">Anim 4 - Estático</option>
+                <option value="anim5">Anim 5 - Médio</option>
+            </select>
+        </div>
+        <div class="control-group">
+            <label>Cena de Posição (Lasers)</label>
+            <select id="laser-pos-preset">
+                <option value="pos1">Pos 1 - Frente longa</option>
+                <option value="pos2">Pos 2 - Curta</option>
+                <option value="pos3">Pos 3 - Aberta</option>
+                <option value="pos4">Pos 4 - Fechada</option>
+                <option value="pos5">Pos 5 - Altas</option>
+            </select>
         </div>
         <div class="control-group">
             <label>Salvar cena de laser</label>
@@ -813,20 +837,56 @@
 
         <div class="section-divider"></div>
 
+        <h3>LED no Palco (Andaime)</h3>
+        <div class="checkbox-group">
+            <input type="checkbox" id="stage-front-bands" checked>
+            <label>LED Frontais</label>
+        </div>
+        <div class="checkbox-group">
+            <input type="checkbox" id="stage-rear-bands" checked>
+            <label>LED Traseiros</label>
+        </div>
+        <div class="control-group">
+            <label>Quantidade de Faixas <span class="value-display" id="stage-band-count-val">6</span></label>
+            <input type="range" id="stage-band-count" min="1" max="6" value="6" step="1">
+        </div>
+        <div class="control-group">
+            <label>Altura da Faixa (m) <span class="value-display" id="stage-band-height-val">0.6</span></label>
+            <input type="range" id="stage-band-height" min="0.2" max="1.5" value="0.6" step="0.05">
+        </div>
+        <div class="control-group">
+            <label>Profundidade da Faixa (m) <span class="value-display" id="stage-band-depth-val">0.12</span></label>
+            <input type="range" id="stage-band-depth" min="0.05" max="0.4" value="0.12" step="0.01">
+        </div>
+        <div class="control-group">
+            <label>Altura Inicial (m acima do deck) <span class="value-display" id="stage-band-start-val">2.2</span></label>
+            <input type="range" id="stage-band-start" min="0" max="5" value="2.2" step="0.1">
+        </div>
+        <div class="control-group">
+            <label>Altura Final (m acima do deck) <span class="value-display" id="stage-band-end-val">6.3</span></label>
+            <input type="range" id="stage-band-end" min="1" max="12" value="6.3" step="0.1">
+        </div>
+
+        <div class="section-divider"></div>
+
         <button class="btn btn-primary" id="export-config">Exportar Configuracao</button>
     </div>
 
-    <div id="stats-panel">
+        <div id="stats-panel">
         <div>FPS: <span id="fps">0</span></div>
         <div>Audio: <span id="audio-status">OFF</span></div>
-        <div>Beat: <span id="beat-indicator">●</span></div>
+        <div>Beat: <span id="beat-indicator">--</span></div>
         <div>Torres: <span id="tower-stat">0</span></div>
-        <div>LED Externo 1000x500: <span id="panel-external-stat">0</span></div>
-        <div>LED BoxTruss 500x500: <span id="panel-boxtruss-stat">0</span></div>
+        <div>LED Transparente (andaimes 1000x500): <span id="panel-external-stat">0</span></div>
+        <div>LED Solido (torres/box 500x500): <span id="panel-boxtruss-stat">0</span></div>
+        <div>LED Palco Frente: <span id="panel-stage-front-stat">0</span></div>
+        <div>LED Palco Traseiro: <span id="panel-stage-rear-stat">0</span></div>
         <div>Total de Paineis: <span id="panel-total-stat">0</span></div>
-        <div>Área LED Externo (m²): <span id="panel-external-area">0</span></div>
-        <div>Área LED BoxTruss (m²): <span id="panel-boxtruss-area">0</span></div>
-        <div>Área LED Total (m²): <span id="panel-total-area">0</span></div>
+        <div>Area LED Transparente (m2): <span id="panel-external-area">0</span></div>
+        <div>Area LED Solido (m2): <span id="panel-boxtruss-area">0</span></div>
+        <div>Area LED Palco Frente (m2): <span id="panel-stage-front-area">0</span></div>
+        <div>Area LED Palco Traseiro (m2): <span id="panel-stage-rear-area">0</span></div>
+        <div>Area LED Total (m2): <span id="panel-total-area">0</span></div>
         <div>Dim Torres (LxPxH): <span id="tower-dims">-</span></div>
         <div>Largura da Torre: <span id="tower-width-only">-</span></div>
         <div>Dim Palco (LxPxH): <span id="stage-dims">-</span></div>
@@ -834,7 +894,6 @@
         <div>Pessoas no backstage: <span id="crowd-backstage-count">0</span></div>
         <div>Triangulos: <span id="triangles">0</span></div>
     </div>
-
     <!-- Menu móvel (controle rápido) -->
     <div id="control-interface">
         <!-- Panel 1: Camera -->

@@ -339,6 +339,43 @@ class PalcoParametrico {
             this.stageBuilder.setParam('deckHeight', parseFloat(value));
         });
 
+        // Palco LED (andaime)
+        const stageFrontBands = document.getElementById('stage-front-bands');
+        if (stageFrontBands) {
+            stageFrontBands.checked = this.stageBuilder.params.stageFrontBandsEnabled;
+            stageFrontBands.addEventListener('change', (e) => {
+                this.stageBuilder.setParam('stageFrontBandsEnabled', e.target.checked);
+            });
+        }
+
+        const stageRearBands = document.getElementById('stage-rear-bands');
+        if (stageRearBands) {
+            stageRearBands.checked = this.stageBuilder.params.stageRearBandsEnabled;
+            stageRearBands.addEventListener('change', (e) => {
+                this.stageBuilder.setParam('stageRearBandsEnabled', e.target.checked);
+            });
+        }
+
+        this.setupSlider('stage-band-count', 'stage-band-count-val', (value) => {
+            this.stageBuilder.setParam('stageBandCount', parseInt(value));
+        });
+
+        this.setupSlider('stage-band-height', 'stage-band-height-val', (value) => {
+            this.stageBuilder.setParam('stageBandHeight', parseFloat(value));
+        });
+
+        this.setupSlider('stage-band-depth', 'stage-band-depth-val', (value) => {
+            this.stageBuilder.setParam('stageBandDepth', parseFloat(value));
+        });
+
+        this.setupSlider('stage-band-start', 'stage-band-start-val', (value) => {
+            this.stageBuilder.setParam('stageBandStartHeight', parseFloat(value));
+        });
+
+        this.setupSlider('stage-band-end', 'stage-band-end-val', (value) => {
+            this.stageBuilder.setParam('stageBandEndHeight', parseFloat(value));
+        });
+
         this.setupSlider('crowd-density', 'crowd-density-val', (value) => {
             this.stageBuilder.setParam('crowdDensity', parseFloat(value));
         });
@@ -459,9 +496,71 @@ class PalcoParametrico {
             });
         }
 
+        const laserColor = document.getElementById('laser-color');
+        if (laserColor) {
+            laserColor.value = '#00ff00';
+            laserColor.addEventListener('input', (e) => {
+                const hex = parseInt(e.target.value.replace('#', '0x'), 16);
+                // converter para hue aproximado
+                const r = (hex >> 16) & 255, g = (hex >> 8) & 255, b = hex & 255;
+                const max = Math.max(r, g, b), min = Math.min(r, g, b);
+                let h = 0;
+                if (max !== min) {
+                    const d = max - min;
+                    if (max === r) h = (g - b) / d + (g < b ? 6 : 0);
+                    else if (max === g) h = (b - r) / d + 2;
+                    else h = (r - g) / d + 4;
+                    h /= 6;
+                }
+                this.laserController.setHue(Math.round(h * 360));
+                this.laserController.resetSignatures();
+            });
+        }
+
         this.setupSlider('stage-laser-count', 'stage-laser-count-val', (value) => {
             this.stageBuilder.setParam('stageLaserCount', parseInt(value));
         });
+
+        // Presets de animação e posição dos lasers
+        this.laserAnimPresets = {
+            anim1: { speed: 2.5, thickness: 1.2, hue: 120 }, // pulse rápido verde
+            anim2: { speed: 0.6, thickness: 0.9, hue: 200 }, // lento azul
+            anim3: { speed: 3.5, thickness: 1.5, hue: 300 }, // turbo magenta
+            anim4: { speed: 0.1, thickness: 1.0, hue: 60 },  // quase estático âmbar
+            anim5: { speed: 1.3, thickness: 1.1, hue: 0 }    // médio vermelho
+        };
+        this.laserPosPresets = {
+            pos1: { distance: 40, patternIndex: 0 }, // frente longa moderada
+            pos2: { distance: 18, patternIndex: 4 }, // curta baixa
+            pos3: { distance: 50, patternIndex: 8 }, // aberta média
+            pos4: { distance: 12, patternIndex: 9 }, // fechada curta
+            pos5: { distance: 30, patternIndex: 5 }  // diagonais suaves
+        };
+
+        const laserAnimPreset = document.getElementById('laser-anim-preset');
+        if (laserAnimPreset) {
+            laserAnimPreset.addEventListener('change', (e) => {
+                const preset = this.laserAnimPresets[e.target.value];
+                if (preset) {
+                    if (preset.speed !== undefined) this.laserController.setSpeed(preset.speed);
+                    if (preset.thickness !== undefined) this.laserController.setThickness(preset.thickness);
+                    if (preset.hue !== undefined) this.laserController.setHue(preset.hue);
+                    this.laserController.resetSignatures();
+                }
+            });
+        }
+
+        const laserPosPreset = document.getElementById('laser-pos-preset');
+        if (laserPosPreset) {
+            laserPosPreset.addEventListener('change', (e) => {
+                const preset = this.laserPosPresets[e.target.value];
+                if (preset) {
+                    if (preset.patternIndex !== undefined) this.laserController.setPattern(preset.patternIndex);
+                    if (preset.distance !== undefined) this.laserController.setDistance(preset.distance);
+                    this.laserController.resetSignatures();
+                }
+            });
+        }
 
         // Laser scenes (salvar/carregar/apagar)
         this.laserScenes = this.loadLaserScenes();
@@ -769,9 +868,13 @@ class PalcoParametrico {
         setText('panel-total-stat', info.leds.totalPanels.toString());
         setText('panel-external-stat', info.leds.externalPanels.toString());
         setText('panel-boxtruss-stat', info.leds.boxPanels.toString());
+        setText('panel-stage-front-stat', info.leds.stageFrontPanels.toString());
+        setText('panel-stage-rear-stat', info.leds.stageRearPanels.toString());
         setText('panel-total-area', `${info.leds.totalArea.toFixed(2)} m²`);
         setText('panel-external-area', `${info.leds.externalArea.toFixed(2)} m²`);
         setText('panel-boxtruss-area', `${info.leds.boxArea.toFixed(2)} m²`);
+        setText('panel-stage-front-area', `${info.leds.stageFrontArea.toFixed(2)} m²`);
+        setText('panel-stage-rear-area', `${info.leds.stageRearArea.toFixed(2)} m²`);
         setText('tower-stat', info.towers.count.toString());
         setText('tower-dims', `${info.towers.width.toFixed(2)} x ${info.towers.depth.toFixed(2)} x ${info.towers.height.toFixed(2)} m`);
         setText('tower-width-only', `${info.towers.width.toFixed(2)} m`);
@@ -946,7 +1049,8 @@ class PalcoParametrico {
         }
 
         this.laserController.updateComposite([
-            { groups: { children: filteredTowers }, mode: 'side' },
+            // Torres/andaimes apontando para as torres opostas
+            { groups: { children: filteredTowers }, mode: 'opposite' },
             { groups: { children: backSelected }, mode: 'forward' }
         ]);
 

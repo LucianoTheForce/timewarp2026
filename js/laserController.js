@@ -125,14 +125,29 @@ export class LaserController {
                 targetCenter.x += dirX * forwardDist;
                 targetCenter.y = baseY + variation.dy;
                 targetCenter.z += variation.dz;
-            } else {
+            } else if (mode === 'forward') {
                 // Frente: apontar para +Z
                 targetCenter.x += variation.dx;
                 targetCenter.y = baseY + variation.dy;
                 targetCenter.z += forwardDist + variation.dz;
+            } else if (mode === 'opposite') {
+                // Apontar reto para a torre oposta espelhando apenas em X (mesma fileira)
+                targetCenter.x = -center.x;
+                targetCenter.y = baseY;
+                targetCenter.z = center.z;
+            } else if (mode === 'outward') {
+                // Apontar para fora do centro geométrico
+                const dir = center.clone().setY(0).normalize();
+                if (dir.lengthSq() === 0) dir.set(0, 0, 1);
+                targetCenter.copy(center).add(dir.multiplyScalar(forwardDist));
+                targetCenter.y = baseY + variation.dy;
             }
 
-            const distance = forwardDist;
+            let distance = forwardDist;
+            if (mode === 'opposite') {
+                distance = center.clone().setY(baseY).distanceTo(targetCenter);
+                if (distance <= 0) distance = forwardDist;
+            }
 
             const createLaser = (angleX = 0, angleY = 0) => {
                 const laser = laserParty.new({
@@ -155,9 +170,14 @@ export class LaserController {
                 this.lasers.push(laser);
             };
 
-            // dois feixes por torre: 1 reto e 1 com leve inclinação
-            createLaser(0, 0);
-            createLaser(variation.dy * 0.02, variation.dx * 0.02);
+            if (mode === 'opposite') {
+                // feixe único e reto para a torre oposta
+                createLaser(0, 0);
+            } else {
+                // dois feixes por torre: 1 reto e 1 com leve inclinação
+                createLaser(0, 0);
+                createLaser(variation.dy * 0.02, variation.dx * 0.02);
+            }
         });
     }
 
