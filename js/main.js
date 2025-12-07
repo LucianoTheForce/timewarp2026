@@ -960,29 +960,57 @@ class PalcoParametrico {
     }
 
     generateQrCode() {
-        const canvas = document.getElementById('qr-canvas');
-        if (!canvas || typeof qrcode === 'undefined') return;
+        if (typeof qrcode === 'undefined') return;
 
         const url = new URL('/control', window.location.href).href;
-        const qr = qrcode(0, 'H');
-        qr.addData(url);
-        qr.make();
+        const drawQr = (canvas) => {
+            if (!canvas) return;
+            const qr = qrcode(0, 'H');
+            qr.addData(url);
+            qr.make();
 
-        const ctx = canvas.getContext('2d');
-        const count = qr.getModuleCount();
-        const cellSize = Math.floor(canvas.width / count);
-        const margin = Math.floor((canvas.width - cellSize * count) / 2);
+            const ctx = canvas.getContext('2d');
+            const count = qr.getModuleCount();
+            const cellSize = Math.floor(canvas.width / count);
+            const margin = Math.floor((canvas.width - cellSize * count) / 2);
 
-        ctx.fillStyle = '#fff';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#fff';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        ctx.fillStyle = '#000';
-        for (let r = 0; r < count; r++) {
-            for (let c = 0; c < count; c++) {
-                if (qr.isDark(r, c)) {
-                    ctx.fillRect(margin + c * cellSize, margin + r * cellSize, cellSize, cellSize);
+            ctx.fillStyle = '#000';
+            for (let r = 0; r < count; r++) {
+                for (let c = 0; c < count; c++) {
+                    if (qr.isDark(r, c)) {
+                        ctx.fillRect(margin + c * cellSize, margin + r * cellSize, cellSize, cellSize);
+                    }
                 }
             }
+        };
+
+        // Small QR in sidebar
+        drawQr(document.getElementById('qr-canvas'));
+
+        // Fullscreen overlay QR
+        const overlay = document.getElementById('qr-overlay');
+        const bigCanvas = document.getElementById('qr-canvas-big');
+        drawQr(bigCanvas);
+
+        const hideOverlay = () => {
+            if (overlay) {
+                overlay.classList.add('hidden');
+            }
+        };
+
+        if (bigCanvas) {
+            bigCanvas.style.cursor = 'pointer';
+            bigCanvas.onclick = () => {
+                window.open(url, '_blank');
+                hideOverlay();
+            };
+        }
+
+        if (overlay) {
+            overlay.addEventListener('click', hideOverlay);
         }
 
         // Permitir abrir o controle no desktop ao clicar no QR

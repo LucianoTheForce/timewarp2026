@@ -435,9 +435,60 @@
         #control-interface {
             display: none;
         }
+        /* QR fullscreen overlay */
+        #qr-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.65);
+            backdrop-filter: blur(14px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+
+        #qr-overlay.hidden {
+            display: none;
+        }
+
+        .qr-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 20px;
+            padding: 26px 32px 30px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 14px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+        }
+
+        #qr-canvas-big {
+            width: 260px;
+            height: 260px;
+            background: #fff;
+            border-radius: 16px;
+            cursor: pointer;
+        }
+
+        .qr-text {
+            color: #fff;
+            font-size: 14px;
+            letter-spacing: 0.6px;
+            text-transform: uppercase;
+            opacity: 0.9;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
+    <div id="qr-overlay">
+        <div class="qr-card">
+            <canvas id="qr-canvas-big" width="260" height="260"></canvas>
+            <p class="qr-text">Scan with your phone to enter</p>
+        </div>
+    </div>
+
     <div id="loading">
         <div class="spinner"></div>
         <p>Iniciando Sistema Parametrico...</p>
