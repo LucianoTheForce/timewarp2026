@@ -26,9 +26,10 @@
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: radial-gradient(ellipse at top, #1a1a2e, #0a0a15);
+            background: linear-gradient(180deg, #0a0a1a 0%, #000000 100%);
             color: var(--light);
-            overflow: hidden;
+            overflow-x: hidden;
+            overflow-y: auto;
             height: 100vh;
             position: relative;
         }
@@ -56,112 +57,331 @@
         /* Home Screen */
         #home {
             width: 100%;
-            height: 100%;
+            min-height: 100vh;
             display: flex;
             flex-direction: column;
+            align-items: flex-start;
+            padding: 80px 30px 100px;
+            position: relative;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 30px;
+            right: 30px;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: none;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
             align-items: center;
             justify-content: center;
-            padding: 40px 20px;
-        }
-
-        .logo {
-            font-size: 48px;
-            font-weight: 900;
-            text-align: center;
-            margin-bottom: 60px;
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            letter-spacing: -2px;
-            text-transform: uppercase;
             opacity: 0;
         }
 
-        .subtitle {
-            font-size: 14px;
-            text-align: center;
-            color: rgba(255,255,255,0.5);
-            margin-top: -50px;
+        .similar-text {
+            font-size: 32px;
+            font-weight: 300;
+            color: white;
             margin-bottom: 40px;
             opacity: 0;
-            letter-spacing: 3px;
-            text-transform: uppercase;
+            letter-spacing: -0.5px;
         }
 
         /* Category Bubbles Container */
         .bubbles-container {
             width: 100%;
-            max-width: 500px;
-            height: 60vh;
-            position: relative;
-            perspective: 1000px;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 30px;
         }
 
         .category-bubble {
-            position: absolute;
-            width: 140px;
-            height: 140px;
             border-radius: 50%;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            backdrop-filter: blur(20px);
-            border: 2px solid var(--glass-border);
-            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            backdrop-filter: blur(40px);
+            border: 3px solid rgba(255, 255, 255, 0.2);
+            transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
             opacity: 0;
             overflow: hidden;
+            background: rgba(255, 255, 255, 0.08);
+            position: relative;
         }
 
         .category-bubble::before {
             content: '';
             position: absolute;
-            inset: 0;
-            border-radius: 50%;
-            background: linear-gradient(135deg, var(--glass), transparent);
-            z-index: -1;
-        }
-
-        .category-bubble::after {
-            content: '';
-            position: absolute;
-            inset: -100%;
-            background: radial-gradient(circle, rgba(255,255,255,0.3) 0%, transparent 70%);
-            opacity: 0;
-            transition: opacity 0.3s;
-        }
-
-        .category-bubble:active::after {
-            opacity: 1;
+            inset: -50%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+            z-index: 0;
         }
 
         .category-bubble:active {
-            transform: scale(0.9);
+            transform: scale(0.95);
+        }
+
+        .bubble-content {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+        }
+
+        .bubble-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 50%;
         }
 
         .bubble-icon {
-            font-size: 40px;
-            margin-bottom: 8px;
+            font-size: 48px;
             filter: drop-shadow(0 4px 12px rgba(0,0,0,0.5));
         }
 
         .bubble-label {
-            font-size: 12px;
-            font-weight: 600;
+            font-size: 11px;
+            font-weight: 500;
             text-align: center;
             text-shadow: 0 2px 8px rgba(0,0,0,0.8);
             text-transform: uppercase;
-            letter-spacing: 1px;
+            letter-spacing: 0.5px;
+            margin-top: 8px;
         }
 
-        /* Position bubbles in a flowing pattern */
-        .category-bubble:nth-child(1) { top: 10%; left: 50%; transform: translateX(-50%); }
-        .category-bubble:nth-child(2) { top: 30%; left: 15%; }
-        .category-bubble:nth-child(3) { top: 30%; right: 15%; }
-        .category-bubble:nth-child(4) { top: 55%; left: 50%; transform: translateX(-50%); }
-        .category-bubble:nth-child(5) { bottom: 15%; left: 20%; }
-        .category-bubble:nth-child(6) { bottom: 15%; right: 20%; }
+        /* Size variations - matching the image */
+        .category-bubble.small {
+            width: 100px;
+            height: 100px;
+            margin-left: 20px;
+        }
+
+        .category-bubble.medium {
+            width: 150px;
+            height: 150px;
+            margin-left: 40px;
+        }
+
+        .category-bubble.large {
+            width: 220px;
+            height: 220px;
+            margin-left: 60px;
+            border-width: 4px;
+        }
+
+        .category-bubble.xlarge {
+            width: 160px;
+            height: 160px;
+            margin-left: 20px;
+        }
+
+        .category-bubble.tiny {
+            width: 120px;
+            height: 120px;
+            margin-left: 10px;
+        }
+
+        /* Player View */
+        #player-view {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: linear-gradient(180deg, #7a5d8f 0%, #1a1a2e 100%);
+            z-index: 200;
+            opacity: 0;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 60px 30px 40px;
+        }
+
+        #player-view.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .player-header {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 60px;
+        }
+
+        .back-arrow {
+            width: 40px;
+            height: 40px;
+            background: transparent;
+            border: none;
+            color: white;
+            font-size: 28px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .player-title {
+            flex: 1;
+            text-align: center;
+        }
+
+        .player-title h3 {
+            font-size: 18px;
+            font-weight: 400;
+            margin-bottom: 4px;
+        }
+
+        .player-title p {
+            font-size: 14px;
+            color: rgba(255,255,255,0.7);
+        }
+
+        .more-btn {
+            width: 40px;
+            height: 40px;
+            background: transparent;
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+        }
+
+        .player-artwork-container {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 40px;
+        }
+
+        .player-artwork {
+            width: 280px;
+            height: 280px;
+            border-radius: 50%;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        }
+
+        .artwork-ring {
+            position: absolute;
+            border-radius: 50%;
+            border: 2px solid rgba(255,255,255,0.1);
+        }
+
+        .artwork-ring.outer {
+            width: 380px;
+            height: 380px;
+        }
+
+        .artwork-ring.middle {
+            width: 340px;
+            height: 340px;
+        }
+
+        .player-time {
+            position: absolute;
+            bottom: -30px;
+            font-size: 14px;
+            color: white;
+        }
+
+        .side-artwork {
+            position: absolute;
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            overflow: hidden;
+            opacity: 0.6;
+        }
+
+        .side-artwork.left {
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .side-artwork.right {
+            right: 0;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .player-controls {
+            width: 100%;
+            max-width: 400px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 60px;
+            padding: 0 20px;
+        }
+
+        .control-btn {
+            background: transparent;
+            border: none;
+            color: white;
+            font-size: 28px;
+            cursor: pointer;
+            padding: 10px;
+            transition: transform 0.2s;
+        }
+
+        .control-btn:active {
+            transform: scale(0.9);
+        }
+
+        .control-btn.play-pause {
+            font-size: 48px;
+        }
+
+        .player-nav {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(20px);
+            border-radius: 50px;
+            padding: 20px 30px;
+            display: flex;
+            gap: 40px;
+            align-items: center;
+        }
+
+        .nav-btn {
+            background: transparent;
+            border: none;
+            color: rgba(255,255,255,0.6);
+            font-size: 24px;
+            cursor: pointer;
+            transition: color 0.3s;
+        }
+
+        .nav-btn.active {
+            color: white;
+        }
 
         /* Category Detail View */
         .category-view {
@@ -589,39 +809,92 @@
     <div id="app">
         <!-- Home Screen -->
         <div id="home">
-            <h1 class="logo">TIMEWARP</h1>
-            <p class="subtitle">Control Center</p>
+            <button class="close-btn">×</button>
+            <h2 class="similar-text">Similar</h2>
 
             <div class="bubbles-container">
-                <div class="category-bubble" data-category="light-scenes">
-                    <div class="bubble-icon">✨</div>
-                    <div class="bubble-label">Light Scenes</div>
+                <div class="category-bubble small" data-category="light-scenes">
+                    <div class="bubble-content">
+                        <div class="bubble-icon">💡</div>
+                    </div>
                 </div>
 
-                <div class="category-bubble" data-category="music">
-                    <div class="bubble-icon">🎵</div>
-                    <div class="bubble-label">Music</div>
+                <div class="category-bubble medium" data-category="music">
+                    <div class="bubble-content">
+                        <div class="bubble-icon">🌅</div>
+                    </div>
                 </div>
 
-                <div class="category-bubble" data-category="stage-views">
-                    <div class="bubble-icon">📷</div>
-                    <div class="bubble-label">Stage Views</div>
+                <div class="category-bubble large" data-category="stage-views">
+                    <div class="bubble-content">
+                        <div class="bubble-icon">🏖️</div>
+                    </div>
                 </div>
 
-                <div class="category-bubble" data-category="stage-options">
-                    <div class="bubble-icon">⚙️</div>
-                    <div class="bubble-label">Stage Options</div>
+                <div class="category-bubble xlarge" data-category="stage-options">
+                    <div class="bubble-content">
+                        <div class="bubble-icon">🌈</div>
+                    </div>
                 </div>
 
-                <div class="category-bubble" data-category="light-control">
-                    <div class="bubble-icon">💡</div>
-                    <div class="bubble-label">Light Control</div>
+                <div class="category-bubble tiny" data-category="light-control">
+                    <div class="bubble-content">
+                        <div class="bubble-icon">🌸</div>
+                    </div>
                 </div>
 
-                <div class="category-bubble" data-category="rider">
-                    <div class="bubble-icon">📋</div>
-                    <div class="bubble-label">Rider</div>
+                <div class="category-bubble medium" data-category="rider">
+                    <div class="bubble-content">
+                        <div class="bubble-icon">✨</div>
+                    </div>
                 </div>
+            </div>
+        </div>
+
+        <!-- Player View -->
+        <div id="player-view">
+            <div class="player-header">
+                <button class="back-arrow" onclick="closePlayer()">‹</button>
+                <div class="player-title">
+                    <h3>Skin</h3>
+                    <p>Flume</p>
+                </div>
+                <button class="more-btn">⋮</button>
+            </div>
+
+            <div class="player-artwork-container">
+                <div class="artwork-ring outer"></div>
+                <div class="artwork-ring middle"></div>
+
+                <div class="side-artwork left">
+                    <div class="bubble-icon">🌊</div>
+                </div>
+
+                <div class="player-artwork">
+                    <div class="bubble-icon" style="font-size: 120px;">🌸</div>
+                </div>
+
+                <div class="side-artwork right">
+                    <div class="bubble-icon">🌈</div>
+                </div>
+
+                <div class="player-time">3:23</div>
+            </div>
+
+            <div class="player-controls">
+                <button class="control-btn">🔀</button>
+                <button class="control-btn">⏮</button>
+                <button class="control-btn play-pause">⏸</button>
+                <button class="control-btn">⏭</button>
+                <button class="control-btn">🔁</button>
+            </div>
+
+            <div class="player-nav">
+                <button class="nav-btn">🏠</button>
+                <button class="nav-btn">📋</button>
+                <button class="nav-btn active">🎵</button>
+                <button class="nav-btn">📊</button>
+                <button class="nav-btn">🔔</button>
             </div>
         </div>
 

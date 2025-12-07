@@ -99,40 +99,40 @@ class ControlApp {
     animateHomeEntrance() {
         const timeline = gsap.timeline();
 
-        // Animate logo
-        timeline.to('.logo', {
-            opacity: 1,
-            y: 0,
-            duration: 1,
-            ease: 'power3.out'
+        // Animate close button
+        timeline.to('.close-btn', {
+            opacity: 0.8,
+            duration: 0.6,
+            ease: 'power2.out'
         });
 
-        // Animate subtitle
-        timeline.to('.subtitle', {
+        // Animate "Similar" text
+        timeline.to('.similar-text', {
             opacity: 1,
-            y: 0,
+            x: 0,
             duration: 0.8,
-            ease: 'power2.out'
-        }, '-=0.5');
+            ease: 'power3.out'
+        }, '-=0.3');
 
-        // Animate bubbles with stagger
+        // Animate bubbles with stagger from top to bottom
         timeline.to('.category-bubble', {
             opacity: 1,
-            scale: 1,
-            duration: 0.8,
-            stagger: 0.1,
-            ease: 'elastic.out(1, 0.5)'
+            x: 0,
+            duration: 1,
+            stagger: 0.15,
+            ease: 'power3.out'
         }, '-=0.4');
 
-        // Add floating animation to bubbles
+        // Add subtle floating animation to bubbles
         gsap.to('.category-bubble', {
-            y: '+=10',
-            duration: 2,
+            y: '+=8',
+            x: '+=4',
+            duration: 3,
             repeat: -1,
             yoyo: true,
             ease: 'sine.inOut',
             stagger: {
-                each: 0.2,
+                each: 0.3,
                 from: 'random'
             }
         });
@@ -256,6 +256,40 @@ class ControlApp {
         window.closeCategory = () => {
             this.closeCategory();
         };
+
+        window.closePlayer = () => {
+            this.closePlayer();
+        };
+    }
+
+    closePlayer() {
+        const playerView = document.getElementById('player-view');
+
+        // Animate player out
+        gsap.to(playerView, {
+            opacity: 0,
+            duration: 0.4,
+            onComplete: () => {
+                playerView.classList.remove('active');
+
+                // Show home again
+                const home = document.getElementById('home');
+                home.style.display = 'flex';
+                gsap.fromTo(home,
+                    { opacity: 0 },
+                    { opacity: 1, duration: 0.5 }
+                );
+
+                // Reset bubbles opacity
+                gsap.to('.category-bubble', {
+                    opacity: 1,
+                    duration: 0.5,
+                    stagger: 0.1
+                });
+            }
+        });
+
+        this.currentCategory = null;
     }
 
     setupSliders() {
@@ -299,45 +333,70 @@ class ControlApp {
     }
 
     openCategory(category) {
+        // Get the clicked bubble
+        const bubble = event.target.closest('.category-bubble');
+        if (!bubble) return;
+
         this.currentCategory = category;
-        const viewId = category + '-view';
-        const view = document.getElementById(viewId);
 
-        if (!view) return;
+        // Get bubble position
+        const rect = bubble.getBoundingClientRect();
+        const centerX = window.innerWidth / 2;
+        const centerY = window.innerHeight / 2;
 
-        // Animate home out
-        gsap.to('#home', {
-            opacity: 0,
-            scale: 0.9,
-            duration: 0.4,
-            ease: 'power2.in',
+        // Clone the bubble for animation
+        const clone = bubble.cloneNode(true);
+        clone.style.position = 'fixed';
+        clone.style.left = rect.left + 'px';
+        clone.style.top = rect.top + 'px';
+        clone.style.width = rect.width + 'px';
+        clone.style.height = rect.height + 'px';
+        clone.style.zIndex = '1000';
+        clone.style.opacity = '1';
+        document.body.appendChild(clone);
+
+        // Hide original bubble
+        gsap.to(bubble, { opacity: 0, duration: 0.3 });
+
+        // Animate clone to center and scale down
+        const targetSize = 280;
+        gsap.to(clone, {
+            left: centerX - targetSize / 2,
+            top: centerY - targetSize / 2 - 50,
+            width: targetSize,
+            height: targetSize,
+            duration: 0.8,
+            ease: 'power3.inOut',
             onComplete: () => {
-                document.getElementById('home').style.pointerEvents = 'none';
+                // Show player view
+                const playerView = document.getElementById('player-view');
+                playerView.classList.add('active');
+
+                gsap.fromTo(playerView,
+                    { opacity: 0 },
+                    { opacity: 1, duration: 0.5 }
+                );
+
+                // Fade out clone
+                gsap.to(clone, {
+                    opacity: 0,
+                    duration: 0.3,
+                    delay: 0.2,
+                    onComplete: () => {
+                        clone.remove();
+                    }
+                });
+
+                // Hide home
+                gsap.to('#home', {
+                    opacity: 0,
+                    duration: 0.4,
+                    onComplete: () => {
+                        document.getElementById('home').style.display = 'none';
+                    }
+                });
             }
         });
-
-        // Animate category view in
-        view.classList.add('active');
-        gsap.fromTo(view,
-            { opacity: 0, y: 50 },
-            { opacity: 1, y: 0, duration: 0.5, ease: 'power3.out', delay: 0.2 }
-        );
-
-        // Animate category content
-        const content = view.querySelector('.category-content');
-        if (content) {
-            gsap.fromTo(content.children,
-                { opacity: 0, y: 30 },
-                {
-                    opacity: 1,
-                    y: 0,
-                    duration: 0.6,
-                    stagger: 0.1,
-                    ease: 'power2.out',
-                    delay: 0.4
-                }
-            );
-        }
     }
 
     closeCategory() {
