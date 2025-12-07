@@ -11,6 +11,8 @@ export const config = {
 };
 
 export default function handler(req, res) {
+  console.log('Socket upgrade:', req.headers.connection, req.headers.upgrade);
+
   if (req.headers.upgrade !== 'websocket') {
     res.status(426).end('Upgrade Required');
     return;
