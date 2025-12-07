@@ -1,49 +1,40 @@
-import { WebSocketServer, WebSocket } from 'ws';
+export const config = { runtime: 'edge' };
 
-// Keep the server and client set alive across invocations
-let wss;
-const clients = new Set();
+// Keep connections alive across edge invocations
+let clients = new Set();
 
-export const config = {
-  api: {
-    bodyParser: false
-  }
-};
-
-export default function handler(req, res) {
-  console.log('Socket upgrade:', req.headers.connection, req.headers.upgrade);
-
-  if (req.headers.upgrade !== 'websocket') {
-    res.status(426).end('Upgrade Required');
-    return;
+export default function handler(req) {
+  // Only proceed on WebSocket upgrade requests
+  if (req.headers.get('upgrade') !== 'websocket') {
+    return new Response('Expected a WebSocket upgrade', { status: 426 });
   }
 
-  if (!wss) {
-    wss = new WebSocketServer({ noServer: true });
+  // Create server/client pair
+  const { 0: client, 1: server } = new WebSocketPair();
+  server.accept();
 
-    wss.on('connection', (ws) => {
-      clients.add(ws);
+  clients.add(server);
 
-      ws.on('message', (message) => {
-        // Fan-out to all other connected clients
-        clients.forEach((client) => {
-          if (client === ws) return;
-          if (client.readyState === WebSocket.OPEN) {
-            client.send(message);
-          }
-        });
-      });
-
-      const cleanup = () => {
-        clients.delete(ws);
-      };
-
-      ws.on('close', cleanup);
-      ws.on('error', cleanup);
+  server.addEventListener('message', (event) => {
+    // Broadcast incoming message to all other clients
+    clients.forEach((ws) => {
+      if (ws === server) return;
+      if (ws.readyState === ws.OPEN) {
+        try {
+          ws.send(event.data);
+        } catch (e) {
+          // Ignore failed sends
+        }
+      }
     });
-  }
-
-  wss.handleUpgrade(req, req.socket, Buffer.alloc(0), (ws) => {
-    wss.emit('connection', ws, req);
   });
+
+  const cleanup = () => {
+    clients.delete(server);
+  };
+
+  server.addEventListener('close', cleanup);
+  server.addEventListener('error', cleanup);
+
+  return new Response(null, { status: 101, webSocket: client });
 }
