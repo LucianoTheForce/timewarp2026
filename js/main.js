@@ -111,6 +111,8 @@ class PalcoParametrico {
 
         // Start overlay (desktop unlock)
         this.setupStartOverlay();
+        // Attempt early audio start (will prompt if blocked)
+        this.attemptAudioStart();
 
         // Window resize handler
         window.addEventListener('resize', () => this.onWindowResize());
