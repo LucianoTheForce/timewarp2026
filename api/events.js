@@ -19,7 +19,8 @@ export default async function handler(req) {
     );
 
     if (latestRes.ok) {
-      const latest = await latestRes.json();
+      const json = await latestRes.json();
+      const latest = Array.isArray(json?.result) ? json.result : json;
       if (Array.isArray(latest) && latest.length > 0) {
         cursor = latest[0][0]; // id
       }
@@ -44,7 +45,8 @@ export default async function handler(req) {
     return new Response(`Failed to read stream: ${text}`, { status: 500 });
   }
 
-  const raw = await res.json();
+  const json = await res.json();
+  const raw = Array.isArray(json?.result) ? json.result : json;
   const events = [];
   let lastCursor = cursor;
 
