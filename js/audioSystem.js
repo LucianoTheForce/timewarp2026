@@ -53,6 +53,7 @@ export class AudioSystem {
             // Create audio element
             this.audioElement = new Audio();
             this.audioElement.crossOrigin = "anonymous";
+            this.audioElement.loop = true; // keep playing so autoplay is not aborted on short tones
 
             // Connect audio element to analyser
             this.source = this.audioContext.createMediaElementSource(this.audioElement);
@@ -95,11 +96,11 @@ export class AudioSystem {
         ];
 
         this.musicFiles = [
-            { name: 'Demo Tone', url: builtInTone },
             ...library.map((t) => ({
                 name: t.name,
                 url: musicFolder + encodeURIComponent(t.file)
             })),
+            { name: 'Demo Tone', url: builtInTone }
         ];
 
         return this.musicFiles;
@@ -117,13 +118,13 @@ export class AudioSystem {
         }
     }
 
-    play() {
+    async play() {
         if (!this.audioElement) return;
 
-        // Se nenhum track estiver carregado, usar o primeiro disponível
+        // Se nenhum track estiver carregado, usar o primeiro disponivel
         if (!this.currentTrack) {
             if (!this.musicFiles || this.musicFiles.length === 0) {
-                this.loadMusicLibrary();
+                await this.loadMusicLibrary();
             }
             if (this.musicFiles && this.musicFiles.length > 0) {
                 this.loadTrack(this.musicFiles[0].url);
@@ -132,17 +133,14 @@ export class AudioSystem {
 
         // Garantir que o AudioContext esteja ativo
         if (this.audioContext && this.audioContext.state === 'suspended') {
-            this.audioContext.resume();
+            await this.audioContext.resume();
         }
 
-        this.audioElement.play().then(() => {
-            this.isPlaying = true;
-            if (this.visualizerCanvas) {
-                this.visualizerCanvas.classList.add('active');
-            }
-        }).catch(err => {
-            console.error('Error playing audio:', err);
-        });
+        await this.audioElement.play();
+        this.isPlaying = true;
+        if (this.visualizerCanvas) {
+            this.visualizerCanvas.classList.add('active');
+        }
     }
 
     pause() {

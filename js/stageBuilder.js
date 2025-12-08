@@ -134,7 +134,7 @@ export class StageBuilder {
             stageBandStartHeight: 2.2, // acima do deck
             stageBandEndHeight: 6.3,   // altura alvo máxima
             laserHeight: 20,
-            laserColor: 0x00ff00,
+            laserColor: 0xff0000,
             laserAnimation: 'laser-wave', // static, sweep, rotate, pulse, chase, random, laser-wave, audio-sync
             laserWaveMode: 'center-out', // center-out, edges-in, left-right, right-left
             laserSpeed: 1.0,
@@ -454,17 +454,30 @@ export class StageBuilder {
         } else if (key === 'p5LightColor') {
             const p5Color = new THREE.Color(value);
             this.p5LightsGroup.children.forEach((light) => {
-                if (light.userData.type === 'p5Light' && light.material) {
-                    light.material.color.copy(p5Color);
-                    light.material.emissive.copy(p5Color);
+                if (light.userData.type === 'p5Light') {
+                    if (light.material) {
+                        light.material.color.copy(p5Color);
+                    }
+                    light.children.forEach((child) => {
+                        if (child.material) {
+                            child.material.color.copy(p5Color);
+                        }
+                    });
                 } else if (light.userData.type === 'p5Cone' && light.material) {
                     light.material.color.copy(p5Color);
                 }
             });
         } else if (key === 'p5LightIntensity') {
             this.p5LightsGroup.children.forEach((light) => {
-                if (light.userData.type === 'p5Light' && light.material) {
-                    light.material.emissiveIntensity = value;
+                if (light.userData.type === 'p5Light') {
+                    if (light.material && light.material.opacity !== undefined) {
+                        light.material.opacity = Math.min(1, 0.4 + value * 0.2);
+                    }
+                    light.children.forEach((child) => {
+                        if (child.material && child.material.opacity !== undefined) {
+                            child.material.opacity = Math.min(1, 0.4 + value * 0.2);
+                        }
+                    });
                 }
             });
         } else if (key === 'laserAnimation' || key === 'laserSpeed') {
@@ -2268,10 +2281,10 @@ export class StageBuilder {
 
         if (!this.params.p5LightsEnabled) return;
 
-        const p5Size = 0.15; // tamanho da luz P5
+        const p5Size = 0.15; // tamanho da luz P5 (marcador emissivo)
         const p5Color = new THREE.Color(this.params.p5LightColor);
 
-        // Material para luzes P5
+        // Material emissivo
         const p5Material = new THREE.MeshStandardMaterial({
             color: p5Color,
             emissive: p5Color,
@@ -2280,21 +2293,24 @@ export class StageBuilder {
             roughness: 0.4
         });
 
-        // Adicionar P5 no box truss central das torres (meia altura)
+        // Adicionar P5 simuladas na face frontal do andaime (sem luz real, apenas emissivo leve)
         this.towersGroup.children.forEach((tower) => {
             const box = new THREE.Box3().setFromObject(tower);
             if (!isFinite(box.min.y)) return;
 
-            const towerHeight = box.max.y - box.min.y;
+            const midHeight = (box.min.y + box.max.y) / 2;
             const centerX = (box.min.x + box.max.x) / 2;
-            const centerZ = (box.min.z + box.max.z) / 2;
-            const midHeight = towerHeight * 0.5;
+            const faceZ = box.max.z + 0.25; // levemente à frente
 
-            const p5Geom = new THREE.BoxGeometry(p5Size, p5Size, p5Size);
-            const p5Mesh = new THREE.Mesh(p5Geom, p5Material.clone());
-            p5Mesh.position.set(centerX, midHeight, centerZ);
-            p5Mesh.userData.type = 'p5Light';
-            this.p5LightsGroup.add(p5Mesh);
+            const p5Geom = new THREE.PlaneGeometry(p5Size, p5Size);
+            const marker = new THREE.Mesh(p5Geom, p5Material.clone());
+            marker.userData.type = 'p5Light';
+            marker.castShadow = false;
+            marker.receiveShadow = false;
+            marker.position.set(centerX, midHeight, faceZ);
+            marker.rotation.y = 0;
+
+            this.p5LightsGroup.add(marker);
         });
     }
 

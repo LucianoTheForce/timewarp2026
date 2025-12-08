@@ -12,6 +12,14 @@ export class SyncManager {
 
     async connect() {
         this.isController = window.innerWidth <= 900;
+
+        // Evita spam no dev local se as rotas /api nao estiverem disponiveis
+        if (window.location.hostname === 'localhost') {
+            console.warn('SyncManager desativado em localhost (sem /api/events)');
+            this.connected = false;
+            return false;
+        }
+
         await this.initCursor();
         this.connected = true;
         this.startPolling();
@@ -30,6 +38,7 @@ export class SyncManager {
     }
 
     startPolling() {
+        if (!this.connected) return;
         const poll = async () => {
             try {
                 const url = `/api/events?cursor=${encodeURIComponent(this.cursor || '')}`;
@@ -48,7 +57,9 @@ export class SyncManager {
             } catch (err) {
                 // ignore and retry
             } finally {
-                this.pollTimer = setTimeout(poll, 800);
+                if (this.connected) {
+                    this.pollTimer = setTimeout(poll, 800);
+                }
             }
         };
 

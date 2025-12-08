@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -38,7 +39,7 @@
             max-height: 95vh;
             overflow-y: auto;
             z-index: 1000;
-            border: 1px solid rgba(255,255,255,0.1);
+            border: 1px solid rgba(255, 255, 255, 0.1);
             backdrop-filter: blur(10px);
         }
 
@@ -47,12 +48,12 @@
         }
 
         #controls::-webkit-scrollbar-track {
-            background: rgba(255,255,255,0.05);
+            background: rgba(255, 255, 255, 0.05);
             border-radius: 3px;
         }
 
         #controls::-webkit-scrollbar-thumb {
-            background: rgba(255,100,100,0.5);
+            background: rgba(255, 100, 100, 0.5);
             border-radius: 3px;
         }
 
@@ -100,7 +101,7 @@
             border-radius: 50%;
             background: linear-gradient(135deg, #ff6b6b, #ff8e53);
             cursor: pointer;
-            box-shadow: 0 0 10px rgba(255,107,107,0.5);
+            box-shadow: 0 0 10px rgba(255, 107, 107, 0.5);
         }
 
         .control-group select {
@@ -228,7 +229,9 @@
         }
 
         @keyframes spin {
-            to { transform: rotate(360deg); }
+            to {
+                transform: rotate(360deg);
+            }
         }
 
         #loading p {
@@ -268,7 +271,7 @@
 
         .section-divider {
             height: 1px;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
             margin: 15px 0;
         }
 
@@ -281,7 +284,7 @@
             border-radius: 8px;
             font-size: 11px;
             font-family: 'Consolas', monospace;
-            border: 1px solid rgba(255,255,255,0.1);
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         #stats-panel div {
@@ -307,7 +310,7 @@
             display: none !important;
         }
 
-        /* Controles móveis (somente mobile) */
+        /* Controles moveis (somente mobile) */
         #control-interface {
             display: none;
         }
@@ -431,10 +434,119 @@
             overflow-y: auto;
         }
 
-        /* Controles móveis aparecem apenas na página /control */
+        /* Accordion layout for parameter menu */
+        .accordion {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .menu-toggle {
+            width: 46px;
+            height: 34px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            background: rgba(255, 255, 255, 0.06);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 5px;
+            padding: 6px 8px;
+            cursor: pointer;
+        }
+
+        .menu-toggle .line {
+            height: 2px;
+            background: #fff;
+            border-radius: 2px;
+        }
+
+        #controls.collapsed .controls-body {
+            display: none;
+        }
+
+        #stats-panel {
+            position: fixed;
+            top: 50px;
+            left: 12px;
+            right: auto;
+            bottom: auto;
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 10px;
+            padding: 10px 12px;
+            color: #fff;
+            font-size: 11px;
+            line-height: 1.3;
+            max-width: 260px;
+            max-height: 60vh;
+            overflow-y: auto;
+            pointer-events: none;
+            z-index: 1500;
+        }
+
+        #fps-badge {
+            position: fixed;
+            top: 12px;
+            left: 12px;
+            background: rgba(0, 0, 0, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #fff;
+            padding: 6px 10px;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 12px;
+            z-index: 1500;
+        }
+
+        details.section-card {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 12px;
+            padding: 10px 12px;
+        }
+
+        details.section-card[open] {
+            border-color: rgba(255, 255, 255, 0.2);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+        }
+
+        details.section-card summary {
+            list-style: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+            color: #fff;
+        }
+
+        details.section-card summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .summary-pill {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 4px 8px;
+            font-size: 11px;
+            color: #cfd8ff;
+        }
+
+        .section-body {
+            margin-top: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        /* Controles moveis aparecem apenas na pagina /control */
         #control-interface {
             display: none;
         }
+
         /* QR fullscreen overlay */
         #qr-overlay {
             position: fixed;
@@ -519,7 +631,7 @@
         .start-card p {
             margin: 0;
             font-size: 13px;
-            color: rgba(255,255,255,0.75);
+            color: rgba(255, 255, 255, 0.75);
         }
 
         #start-experience {
@@ -535,12 +647,13 @@
         }
     </style>
 </head>
+
 <body>
     <div id="start-overlay">
         <div class="start-card">
-            <h3>Iniciar experiência</h3>
-            <p>Ative o áudio e veja o QR para conectar o controle remoto.</p>
-            <button id="start-experience">Começar</button>
+            <h3>Iniciar experiencia</h3>
+            <p>Ative o audio e veja o QR para conectar o controle remoto.</p>
+            <button id="start-experience">Comecar</button>
         </div>
     </div>
 
@@ -559,469 +672,7 @@
     <div id="canvas-container"></div>
     <canvas id="audio-visualizer"></canvas>
 
-        <div id="controls">
-            <h2>PALCO TIMEWARP</h2>
-
-            <div class="info-box" style="display:flex; align-items:center; gap:10px; justify-content:space-between;">
-                <div>
-                    <strong>Controle Remoto</strong><br>
-                    Abra <code>/control</code> ou escaneie o QR para usar o joystick.
-                </div>
-                <canvas id="qr-canvas" width="90" height="90" style="background:#fff; border-radius:6px;"></canvas>
-            </div>
-
-        <h3>Torres de Andaime</h3>
-
-        <div class="control-group">
-            <label>Quantidade de Torres <span class="value-display" id="tower-count-val">8</span></label>
-            <input type="range" id="tower-count" min="2" max="12" value="8" step="1">
-        </div>
-
-        <div class="control-group">
-            <label>Formato das Torres</label>
-            <select id="tower-shape">
-                <option value="square">Quadrada (4 canos)</option>
-                <option value="rectangular">Retangular (4 canos)</option>
-                <option value="triangular">Triangular (3 canos)</option>
-            </select>
-        </div>
-
-        <div class="control-group">
-            <label>Altura - Niveis de 2m <span class="value-display" id="tower-levels-val">4</span></label>
-            <input type="range" id="tower-levels" min="2" max="10" value="4" step="1">
-        </div>
-
-        <div class="control-group">
-            <label>Raio de Disposicao (m) <span class="value-display" id="layout-radius-val">8</span></label>
-            <input type="range" id="layout-radius" min="5" max="25" value="8" step="0.5">
-        </div>
-
-        <div class="control-group">
-            <label>Disposicao das Torres</label>
-            <select id="layout-type">
-                <option value="circular">Circular</option>
-                <option value="line">Linha</option>
-                <option value="grid" selected>Grade</option>
-            </select>
-        </div>
-
-        <div class="control-group">
-            <label>Linhas (Grid) <span class="value-display" id="layout-rows-val">5</span></label>
-            <input type="range" id="layout-rows" min="1" max="10" value="5" step="1">
-        </div>
-
-        <div class="control-group">
-            <label>Colunas (Grid) <span class="value-display" id="layout-cols-val">2</span></label>
-            <input type="range" id="layout-cols" min="1" max="10" value="2" step="1">
-        </div>
-
-        <div class="control-group">
-            <label>Espacamento X (m) <span class="value-display" id="layout-spacing-x-val">32</span></label>
-            <input type="range" id="layout-spacing-x" min="2" max="50" value="32" step="0.5">
-        </div>
-
-        <div class="control-group">
-            <label>Espacamento Y (m) <span class="value-display" id="layout-spacing-y-val">8</span></label>
-            <input type="range" id="layout-spacing-y" min="2" max="25" value="8" step="0.5">
-        </div>
-
-        <div class="control-group">
-            <label>Largura da Torre (m) <span class="value-display" id="tower-width-val">2.0</span></label>
-            <input type="range" id="tower-width" min="0.5" max="3" value="2.0" step="0.1">
-        </div>
-
-        <div class="control-group">
-            <label>Profundidade da Torre (m) <span class="value-display" id="tower-depth-val">2.0</span></label>
-            <input type="range" id="tower-depth" min="0.5" max="3" value="2.0" step="0.1">
-        </div>
-
-        <div class="section-divider"></div>
-
-        <h3>Andaimes (Canos 2m)</h3>
-
-        <div class="info-box">
-            <strong>Especificacoes:</strong> Canos de 2m de comprimento padrao para andaimes modulares.
-        </div>
-
-        <div class="control-group">
-            <label>Diametro do Cano (mm) <span class="value-display" id="pipe-diameter-val">48</span></label>
-            <input type="range" id="pipe-diameter" min="30" max="80" value="48" step="2">
-        </div>
-
-        <div class="control-group color-picker-wrapper">
-            <label>Cor dos Canos</label>
-            <input type="color" id="pipe-color" value="#555555">
-        </div>
-
-        <div class="checkbox-group">
-            <input type="checkbox" id="show-diagonal-braces" checked>
-            <label>Mostrar Contraventamentos Diagonais</label>
-        </div>
-
-        <div class="checkbox-group">
-            <input type="checkbox" id="back-scaffold-enabled" checked>
-            <label>Estrutura traseira encostada</label>
-        </div>
-
-        <div class="checkbox-group">
-            <input type="checkbox" id="railings-enabled" checked>
-            <label>Grades de protecao</label>
-        </div>
-
-        <div class="checkbox-group">
-            <input type="checkbox" id="stairs-enabled" checked>
-            <label>Escadas laterais</label>
-        </div>
-
-        <div class="checkbox-group">
-            <input type="checkbox" id="risers-enabled" checked>
-            <label>Praticaveis DJ</label>
-        </div>
-
-        <div class="section-divider"></div>
-
-        <h3>LED Sólido (Box Truss Central)</h3>
-
-        <div class="info-box">
-            <strong>Módulos 50x50cm</strong> no box truss central de cada torre
-        </div>
-
-        <div class="checkbox-group">
-            <input type="checkbox" id="led-boxtruss-enabled" checked>
-            <label>Ativar LED no Box Truss</label>
-        </div>
-
-        <div class="control-group">
-            <label>Paineis por Face <span class="value-display" id="boxtruss-panels-val">16</span></label>
-            <input type="range" id="boxtruss-panels" min="1" max="20" value="16" step="1">
-        </div>
-
-        <div class="control-group">
-            <label>Faces com LED <span class="value-display" id="boxtruss-faces-val">4</span></label>
-            <input type="range" id="boxtruss-faces" min="1" max="4" value="4" step="1">
-        </div>
-
-        <div class="control-group color-picker-wrapper">
-            <label>Cor LED S\u00f3lido</label>
-            <input type="color" id="led-color-box" value="#ff0066">
-        </div>
-
-        <div class="control-group">
-            <label>Intensidade S\u00f3lido <span class="value-display" id="led-intensity-box-val">6.0</span></label>
-            <input type="range" id="led-intensity-box" min="0" max="12" value="6" step="0.1">
-        </div>
-
-        <div class="section-divider"></div>
-
-        <h3>LED Transparente (Andaimes Externos)</h3>
-
-        <div class="info-box">
-            <strong>LR3.9-7.8:</strong> 1000x500mm | Peso: ~6kg
-        </div>
-
-        <div class="checkbox-group">
-            <input type="checkbox" id="led-external-enabled" checked>
-            <label>Ativar LED nos Andaimes</label>
-        </div>
-
-        <div class="control-group">
-            <label>Paineis por Face <span class="value-display" id="external-panels-val">8</span></label>
-            <input type="range" id="external-panels" min="1" max="20" value="8" step="1">
-        </div>
-
-        <div class="control-group">
-            <label>Faces com LED <span class="value-display" id="external-faces-val">4</span></label>
-            <input type="range" id="external-faces" min="1" max="4" value="4" step="1">
-        </div>
-
-        <div class="control-group">
-            <label>Paineis por Linha (1 ou 2) <span class="value-display" id="external-panels-row-val">2</span></label>
-            <input type="range" id="external-panels-row" min="1" max="2" value="2" step="1">
-        </div>
-
-        <div class="checkbox-group">
-            <input type="checkbox" id="hide-rear-panels" checked>
-            <label>Remover LED traseiro (pano preto)</label>
-        </div>
-        <div class="checkbox-group">
-            <input type="checkbox" id="hide-first-level">
-            <label>Remover LED do 1º andar (tecido preto)</label>
-        </div>
-
-        <div class="control-group color-picker-wrapper">
-            <label>Cor LED Transparente</label>
-            <input type="color" id="led-color-external" value="#ff0000">
-        </div>
-
-        <div class="control-group">
-            <label>Intensidade Transparente <span class="value-display" id="led-intensity-external-val">6.0</span></label>
-            <input type="range" id="led-intensity-external" min="0" max="12" value="6" step="0.1">
-        </div>
-
-        <div class="section-divider"></div>
-
-        <h3>Conteudo de Video</h3>
-
-        <div class="file-input-wrapper">
-            <button class="btn btn-secondary">Carregar Video Local</button>
-            <input type="file" id="video-upload" accept="video/*">
-        </div>
-
-        <video id="video-preview" loop muted></video>
-
-        <div class="control-group" style="margin-top: 10px;">
-            <label>URL do Video (MP4, WebM)</label>
-            <input type="text" id="video-url" placeholder="https://exemplo.com/video.mp4" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #333; background: #1a1a2e; color: #fff; font-size: 11px;">
-        </div>
-
-        <button class="btn btn-primary" id="apply-video">Aplicar Video aos Paineis</button>
-
-        <div class="btn-row" style="margin-top: 8px;">
-            <button class="btn btn-secondary" id="play-video">Play</button>
-            <button class="btn btn-secondary" id="pause-video">Pause</button>
-        </div>
-
-        <div class="section-divider"></div>
-
-        <h3>Efeitos LED</h3>
-
-        <div class="control-group">
-            <label>Modo de Cor</label>
-            <select id="led-effect">
-                <option value="solid">Cor Solida</option>
-                <option value="rainbow">Arco-Iris</option>
-                <option value="pulse">Pulsar</option>
-                <option value="wave" selected>Onda</option>
-                <option value="video">Video</option>
-            </select>
-        </div>
-
-        <div class="control-group color-picker-wrapper">
-            <label>Cor Base LED</label>
-            <input type="color" id="led-color" value="#ff0066">
-        </div>
-
-        <div class="control-group">
-            <label>Intensidade Global <span class="value-display" id="led-intensity-val">1.4</span></label>
-            <input type="range" id="led-intensity" min="0" max="12" value="1.4" step="0.1">
-        </div>
-
-        <div class="control-group">
-            <label>Velocidade da Animacao <span class="value-display" id="animation-speed-val">1.0</span></label>
-            <input type="range" id="animation-speed" min="0.1" max="5" value="1" step="0.1">
-        </div>
-
-        <div class="section-divider"></div>
-
-        <h3>Lasers & Iluminacao</h3>
-        <div class="checkbox-group">
-            <input type="checkbox" id="lasers-enabled" checked>
-            <label>Lasers Ativos</label>
-        </div>
-        <div class="checkbox-group">
-            <input type="checkbox" id="p5-enabled" checked>
-            <label>Floods P5 Ativos</label>
-        </div>
-        <div class="checkbox-group">
-            <input type="checkbox" id="laser-all-towers" checked>
-            <label>Laser em todas as torres</label>
-        </div>
-        <div class="control-group color-picker-wrapper">
-            <label>Cor dos Lasers</label>
-            <input type="color" id="laser-color" value="#00ff00">
-        </div>
-        <div class="control-group">
-            <label>Qtd lasers no palco traseiro <span class="value-display" id="stage-laser-count-val">20</span></label>
-            <input type="range" id="stage-laser-count" min="1" max="30" value="20" step="1">
-        </div>
-        <div class="control-group">
-            <label>Cena de Animação (Lasers)</label>
-            <select id="laser-anim-preset">
-                <option value="anim1">Anim 1 - Pulse rápido</option>
-                <option value="anim2">Anim 2 - Lento suave</option>
-                <option value="anim3">Anim 3 - Turbo</option>
-                <option value="anim4">Anim 4 - Estático</option>
-                <option value="anim5">Anim 5 - Médio</option>
-                <option value="wave" selected>Onda Treble</option>
-            </select>
-        </div>
-        <div class="control-group">
-            <label>Cena de Posição (Lasers)</label>
-            <select id="laser-pos-preset">
-                <option value="pos1">Pos 1 - Frente longa</option>
-                <option value="pos2">Pos 2 - Curta</option>
-                <option value="pos3">Pos 3 - Aberta</option>
-                <option value="pos4">Pos 4 - Fechada</option>
-                <option value="pos5">Pos 5 - Altas</option>
-            </select>
-        </div>
-        <div class="control-group">
-            <label>Direção da Onda (Lasers)</label>
-            <select id="laser-wave-mode">
-                <option value="center-out">Centro → Bordas</option>
-                <option value="edges-in">Bordas → Centro</option>
-                <option value="left-right">Esquerda → Direita</option>
-                <option value="right-left">Direita → Esquerda</option>
-            </select>
-        </div>
-        <div class="control-group">
-            <label>Salvar cena de laser</label>
-            <input type="text" id="laser-scene-name" placeholder="ex: Cena 1" style="width:100%; padding:8px; border-radius:6px; border:1px solid #333; background:#1a1a2e; color:#fff;">
-            <div style="display:flex; gap:8px; margin-top:8px;">
-                <button class="btn btn-secondary" id="laser-save">Salvar</button>
-                <button class="btn btn-secondary" id="laser-load">Carregar</button>
-                <button class="btn btn-secondary" id="laser-delete">Apagar</button>
-            </div>
-            <select id="laser-scene-list" style="width:100%; margin-top:8px; padding:8px; border-radius:6px; border:1px solid #333; background:#1a1a2e; color:#fff;">
-            </select>
-        </div>
-
-        <div class="section-divider"></div>
-
-        <h3>Painéis P5 (torres e palco)</h3>
-        <div class="checkbox-group">
-            <input type="checkbox" id="p5-panels-enabled" checked>
-            <label>Ativar P5</label>
-        </div>
-        <div class="control-group">
-            <label>Paineis por Linha (X) <span class="value-display" id="p5-panels-x-val">4</span></label>
-            <input type="range" id="p5-panels-x" min="1" max="12" value="4" step="1">
-        </div>
-        <div class="control-group">
-            <label>Paineis por Coluna (Y) <span class="value-display" id="p5-panels-y-val">4</span></label>
-            <input type="range" id="p5-panels-y" min="1" max="20" value="4" step="1">
-        </div>
-        <div class="control-group">
-            <label>Altura inicial P5 (m) <span class="value-display" id="p5-panels-start-val">0.5</span></label>
-            <input type="range" id="p5-panels-start" min="0" max="5" value="0.5" step="0.1">
-        </div>
-        <div class="control-group">
-            <label>Altura final P5 (m) <span class="value-display" id="p5-panels-end-val">6.0</span></label>
-            <input type="range" id="p5-panels-end" min="1" max="12" value="6.0" step="0.1">
-        </div>
-        <div class="control-group color-picker-wrapper">
-            <label>Cor P5</label>
-            <input type="color" id="p5-panel-color" value="#ffffff">
-        </div>
-
-        <h3>Camera e Visualizacao</h3>
-
-        <button class="btn btn-secondary" id="reset-camera">Reset Camera</button>
-
-        <div class="btn-row">
-            <button class="btn btn-secondary" id="top-view">Topo</button>
-            <button class="btn btn-secondary" id="front-view">Frente</button>
-            <button class="btn btn-secondary" id="side-view">Lado</button>
-        </div>
-
-        <div class="checkbox-group">
-            <input type="checkbox" id="auto-rotate">
-            <label>Rotacao Automatica</label>
-        </div>
-
-        <div class="checkbox-group">
-            <input type="checkbox" id="show-floor" checked>
-            <label>Mostrar Piso</label>
-        </div>
-
-        <div class="checkbox-group">
-            <input type="checkbox" id="show-stage-deck" checked>
-            <label>Mostrar Palco Modular</label>
-        </div>
-
-        <div class="checkbox-group">
-            <input type="checkbox" id="show-dimensions">
-            <label>Mostrar Medidas</label>
-        </div>
-
-        <h3>Palco Modular</h3>
-        <div class="control-group">
-            <label>Backstage Esq (m) <span class="value-display" id="deck-back-left-val">8.75</span></label>
-            <input type="range" id="deck-back-left" min="2" max="15" value="8.75" step="0.25">
-        </div>
-        <div class="control-group">
-            <label>Backstage Centro (m) <span class="value-display" id="deck-back-center-val">13.75</span></label>
-            <input type="range" id="deck-back-center" min="2" max="20" value="13.75" step="0.25">
-        </div>
-        <div class="control-group">
-            <label>Backstage Dir (m) <span class="value-display" id="deck-back-right-val">8.75</span></label>
-            <input type="range" id="deck-back-right" min="2" max="15" value="8.75" step="0.25">
-        </div>
-        <div class="control-group">
-            <label>Profundidade Backstage (m) <span class="value-display" id="deck-back-depth-val">7.5</span></label>
-            <input type="range" id="deck-back-depth" min="2" max="12" value="7.5" step="0.25">
-        </div>
-        <div class="control-group">
-            <label>Largura DJ (m) <span class="value-display" id="deck-dj-width-val">8</span></label>
-            <input type="range" id="deck-dj-width" min="2" max="15" value="8" step="0.25">
-        </div>
-        <div class="control-group">
-            <label>Profundidade DJ (m) <span class="value-display" id="deck-dj-depth-val">3.75</span></label>
-            <input type="range" id="deck-dj-depth" min="1" max="10" value="3.75" step="0.25">
-        </div>
-        <div class="control-group">
-            <label>Largura Frente (m) <span class="value-display" id="deck-front-width-val">8</span></label>
-            <input type="range" id="deck-front-width" min="2" max="20" value="8" step="0.25">
-        </div>
-        <div class="control-group">
-            <label>Profundidade Frente (m) <span class="value-display" id="deck-front-depth-val">2.5</span></label>
-            <input type="range" id="deck-front-depth" min="1" max="10" value="2.5" step="0.25">
-        </div>
-        <div class="control-group">
-            <label>Altura do Palco (m) <span class="value-display" id="deck-height-val">1.33</span></label>
-            <input type="range" id="deck-height" min="0.5" max="3" value="1.33" step="0.05">
-        </div>
-
-        <div class="checkbox-group">
-            <input type="checkbox" id="show-glb-model">
-            <label>Mostrar Modelo GLB Original</label>
-        </div>
-
-        <div class="section-divider"></div>
-        <h3>Público</h3>
-        <div class="control-group">
-            <label>Densidade (pessoas/m²) <span class="value-display" id="crowd-density-val">2.5</span></label>
-            <input type="range" id="crowd-density" min="0.5" max="4" value="2.5" step="0.1">
-        </div>
-
-        <div class="section-divider"></div>
-
-        <h3>LED no Palco (Andaime)</h3>
-        <div class="checkbox-group">
-            <input type="checkbox" id="stage-front-bands" checked>
-            <label>LED Frontais</label>
-        </div>
-        <div class="checkbox-group">
-            <input type="checkbox" id="stage-rear-bands" checked>
-            <label>LED Traseiros</label>
-        </div>
-        <div class="control-group">
-            <label>Quantidade de Faixas <span class="value-display" id="stage-band-count-val">6</span></label>
-            <input type="range" id="stage-band-count" min="1" max="6" value="6" step="1">
-        </div>
-        <div class="control-group">
-            <label>Altura da Faixa (m) <span class="value-display" id="stage-band-height-val">0.6</span></label>
-            <input type="range" id="stage-band-height" min="0.2" max="1.5" value="0.6" step="0.05">
-        </div>
-        <div class="control-group">
-            <label>Profundidade da Faixa (m) <span class="value-display" id="stage-band-depth-val">0.12</span></label>
-            <input type="range" id="stage-band-depth" min="0.05" max="0.4" value="0.12" step="0.01">
-        </div>
-        <div class="control-group">
-            <label>Altura Inicial (m acima do deck) <span class="value-display" id="stage-band-start-val">2.2</span></label>
-            <input type="range" id="stage-band-start" min="0" max="5" value="2.2" step="0.1">
-        </div>
-        <div class="control-group">
-            <label>Altura Final (m acima do deck) <span class="value-display" id="stage-band-end-val">6.3</span></label>
-            <input type="range" id="stage-band-end" min="1" max="12" value="6.3" step="0.1">
-        </div>
-
-        <div class="section-divider"></div>
-
-        <button class="btn btn-primary" id="export-config">Exportar Configuracao</button>
-    </div>
-
-        <div id="stats-panel">
+    <div id="stats-panel">
         <div>FPS: <span id="fps">0</span></div>
         <div>Audio: <span id="audio-status">OFF</span></div>
         <div>Beat: <span id="beat-indicator">--</span></div>
@@ -1043,63 +694,550 @@
         <div>Pessoas no backstage: <span id="crowd-backstage-count">0</span></div>
         <div>Triangulos: <span id="triangles">0</span></div>
     </div>
-    <!-- Menu móvel (controle rápido) -->
-    <div id="control-interface">
-        <!-- Panel 1: Camera -->
-        <div class="control-panel" id="camera-panel">
-            <h3>🎥 Câmera</h3>
-            <div class="camera-arrows">
-                <div class="arrow-btn empty"></div>
-                <div class="arrow-btn" id="cam-forward">↑</div>
-                <div class="arrow-btn empty"></div>
+    <div id="fps-badge">FPS: <span id="fps-badge-val">0</span></div>
 
-                <div class="arrow-btn" id="cam-left">←</div>
-                <div class="arrow-btn" id="cam-reset">⊙</div>
-                <div class="arrow-btn" id="cam-right">→</div>
+    <div id="controls" class="collapsed">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+            <h2 style="margin:0;">PALCO TIMEWARP</h2>
+            <button id="menu-toggle" class="menu-toggle" aria-label="Abrir menu">
+                <span class="line"></span>
+                <span class="line"></span>
+                <span class="line"></span>
+            </button>
+        </div>
 
-                <div class="arrow-btn empty"></div>
-                <div class="arrow-btn" id="cam-backward">↓</div>
-                <div class="arrow-btn empty"></div>
+        <div id="controls-body" class="controls-body">
+            <div class="info-box" style="display:flex; align-items:center; gap:10px; justify-content:space-between;">
+                <div>
+                    <strong>Controle Remoto</strong><br>
+                    Abra <code>/control</code> ou escaneie o QR para usar o joystick.
+                </div>
+                <canvas id="qr-canvas" width="90" height="90" style="background:#fff; border-radius:6px;"></canvas>
             </div>
-            <button class="control-btn" id="cam-auto-toggle">🔄 Auto-Rotate</button>
+
+            <div class="accordion">
+
+                <details class="section-card">
+                    <summary>Torres e Layout <span class="summary-pill">Estrutura</span></summary>
+                    <div class="section-body">
+                        <div class="control-group">
+                            <label>Quantidade de Torres <span class="value-display"
+                                    id="tower-count-val">8</span></label>
+                            <input type="range" id="tower-count" min="2" max="12" value="8" step="1">
+                        </div>
+                        <div class="control-group">
+                            <label>Formato das Torres</label>
+                            <select id="tower-shape">
+                                <option value="square">Quadrada (4 canos)</option>
+                                <option value="rectangular">Retangular (4 canos)</option>
+                                <option value="triangular">Triangular (3 canos)</option>
+                            </select>
+                        </div>
+                        <div class="control-group">
+                            <label>Altura - Niveis de 2m <span class="value-display"
+                                    id="tower-levels-val">4</span></label>
+                            <input type="range" id="tower-levels" min="2" max="10" value="4" step="1">
+                        </div>
+                        <div class="control-group">
+                            <label>Raio de Disposicao (m) <span class="value-display"
+                                    id="layout-radius-val">8</span></label>
+                            <input type="range" id="layout-radius" min="5" max="25" value="8" step="0.5">
+                        </div>
+                        <div class="control-group">
+                            <label>Disposicao das Torres</label>
+                            <select id="layout-type">
+                                <option value="circular">Circular</option>
+                                <option value="line">Linha</option>
+                                <option value="grid" selected>Grade</option>
+                            </select>
+                        </div>
+                        <div class="control-group">
+                            <label>Linhas (Grid) <span class="value-display" id="layout-rows-val">5</span></label>
+                            <input type="range" id="layout-rows" min="1" max="10" value="5" step="1">
+                        </div>
+                        <div class="control-group">
+                            <label>Colunas (Grid) <span class="value-display" id="layout-cols-val">2</span></label>
+                            <input type="range" id="layout-cols" min="1" max="10" value="2" step="1">
+                        </div>
+                        <div class="control-group">
+                            <label>Espacamento X (m) <span class="value-display"
+                                    id="layout-spacing-x-val">32</span></label>
+                            <input type="range" id="layout-spacing-x" min="2" max="50" value="32" step="0.5">
+                        </div>
+                        <div class="control-group">
+                            <label>Espacamento Y (m) <span class="value-display"
+                                    id="layout-spacing-y-val">8</span></label>
+                            <input type="range" id="layout-spacing-y" min="2" max="25" value="8" step="0.5">
+                        </div>
+                        <div class="control-group">
+                            <label>Largura da Torre (m) <span class="value-display"
+                                    id="tower-width-val">2.0</span></label>
+                            <input type="range" id="tower-width" min="0.5" max="3" value="2.0" step="0.1">
+                        </div>
+                        <div class="control-group">
+                            <label>Profundidade da Torre (m) <span class="value-display"
+                                    id="tower-depth-val">2.0</span></label>
+                            <input type="range" id="tower-depth" min="0.5" max="3" value="2.0" step="0.1">
+                        </div>
+                    </div>
+                </details>
+
+                <details class="section-card">
+                    <summary>Andaimes e Canos <span class="summary-pill">Estrutura</span></summary>
+                    <div class="section-body">
+                        <div class="info-box">
+                            <strong>Especificacoes:</strong> Canos de 2m de comprimento padrao para andaimes modulares.
+                        </div>
+                        <div class="control-group">
+                            <label>Diametro do Cano (mm) <span class="value-display"
+                                    id="pipe-diameter-val">48</span></label>
+                            <input type="range" id="pipe-diameter" min="30" max="80" value="48" step="2">
+                        </div>
+                        <div class="control-group color-picker-wrapper">
+                            <label>Cor dos Canos</label>
+                            <input type="color" id="pipe-color" value="#555555">
+                        </div>
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="show-diagonal-braces" checked>
+                            <label>Mostrar Contraventamentos Diagonais</label>
+                        </div>
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="back-scaffold-enabled" checked>
+                            <label>Estrutura traseira encostada</label>
+                        </div>
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="railings-enabled" checked>
+                            <label>Grades de protecao</label>
+                        </div>
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="stairs-enabled" checked>
+                            <label>Escadas laterais</label>
+                        </div>
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="risers-enabled" checked>
+                            <label>Praticaveis DJ</label>
+                        </div>
+                    </div>
+                </details>
+
+                <details class="section-card">
+                    <summary>LED Box Truss <span class="summary-pill">LED</span></summary>
+                    <div class="section-body">
+                        <div class="info-box">
+                            <strong>Modulos 50x50cm</strong> no box truss central de cada torre
+                        </div>
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="led-boxtruss-enabled" checked>
+                            <label>Ativar LED no Box Truss</label>
+                        </div>
+                        <div class="control-group">
+                            <label>Paineis por Face <span class="value-display"
+                                    id="boxtruss-panels-val">16</span></label>
+                            <input type="range" id="boxtruss-panels" min="1" max="20" value="16" step="1">
+                        </div>
+                        <div class="control-group">
+                            <label>Faces com LED <span class="value-display" id="boxtruss-faces-val">4</span></label>
+                            <input type="range" id="boxtruss-faces" min="1" max="4" value="4" step="1">
+                        </div>
+                        <div class="control-group color-picker-wrapper">
+                            <label>Cor LED Solido</label>
+                            <input type="color" id="led-color-box" value="#ff0066">
+                        </div>
+                        <div class="control-group">
+                            <label>Intensidade Solido <span class="value-display"
+                                    id="led-intensity-box-val">6.0</span></label>
+                            <input type="range" id="led-intensity-box" min="0" max="12" value="6" step="0.1">
+                        </div>
+                    </div>
+                </details>
+
+                <details class="section-card">
+                    <summary>LED Transparente <span class="summary-pill">LED</span></summary>
+                    <div class="section-body">
+                        <div class="info-box">
+                            <strong>LR3.9-7.8:</strong> 1000x500mm | Peso: ~6kg
+                        </div>
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="led-external-enabled" checked>
+                            <label>Ativar LED nos Andaimes</label>
+                        </div>
+                        <div class="control-group">
+                            <label>Paineis por Face <span class="value-display"
+                                    id="external-panels-val">8</span></label>
+                            <input type="range" id="external-panels" min="1" max="20" value="8" step="1">
+                        </div>
+                        <div class="control-group">
+                            <label>Faces com LED <span class="value-display" id="external-faces-val">4</span></label>
+                            <input type="range" id="external-faces" min="1" max="4" value="4" step="1">
+                        </div>
+                        <div class="control-group">
+                            <label>Paineis por Linha (1 ou 2) <span class="value-display"
+                                    id="external-panels-row-val">2</span></label>
+                            <input type="range" id="external-panels-row" min="1" max="2" value="2" step="1">
+                        </div>
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="hide-rear-panels" checked>
+                            <label>Remover LED traseiro (pano preto)</label>
+                        </div>
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="hide-first-level">
+                            <label>Remover LED do 1o andar (tecido preto)</label>
+                        </div>
+                        <div class="control-group color-picker-wrapper">
+                            <label>Cor LED Transparente</label>
+                            <input type="color" id="led-color-external" value="#ff0000">
+                        </div>
+                        <div class="control-group">
+                            <label>Intensidade Transparente <span class="value-display"
+                                    id="led-intensity-external-val">6.0</span></label>
+                            <input type="range" id="led-intensity-external" min="0" max="12" value="6" step="0.1">
+                        </div>
+                    </div>
+                </details>
+
+                <details class="section-card">
+                    <summary>Conteudo de Video <span class="summary-pill">Midia</span></summary>
+                    <div class="section-body">
+                        <div class="file-input-wrapper">
+                            <button class="btn btn-secondary">Carregar Video Local</button>
+                            <input type="file" id="video-upload" accept="video/*">
+                        </div>
+                        <video id="video-preview" loop muted></video>
+                        <div class="control-group" style="margin-top: 10px;">
+                            <label>URL do Video (MP4, WebM)</label>
+                            <input type="text" id="video-url" placeholder="https://exemplo.com/video.mp4"
+                                style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #333; background: #1a1a2e; color: #fff; font-size: 11px;">
+                        </div>
+                        <button class="btn btn-primary" id="apply-video">Aplicar Video aos Paineis</button>
+                        <div class="btn-row" style="margin-top: 8px;">
+                            <button class="btn btn-secondary" id="play-video">Play</button>
+                            <button class="btn btn-secondary" id="pause-video">Pause</button>
+                        </div>
+                    </div>
+                </details>
+
+                <details class="section-card">
+                    <summary>Efeitos LED <span class="summary-pill">LED</span></summary>
+                    <div class="section-body">
+                        <div class="control-group">
+                            <label>Modo de Cor</label>
+                            <select id="led-effect">
+                                <option value="solid">Cor Solida</option>
+                                <option value="rainbow">Arco-Iris</option>
+                                <option value="pulse">Pulsar</option>
+                                <option value="wave" selected>Onda</option>
+                                <option value="video">Video</option>
+                            </select>
+                        </div>
+                        <div class="control-group color-picker-wrapper">
+                            <label>Cor Base LED</label>
+                            <input type="color" id="led-color" value="#ff0066">
+                        </div>
+                        <div class="control-group">
+                            <label>Intensidade Global <span class="value-display"
+                                    id="led-intensity-val">1.4</span></label>
+                            <input type="range" id="led-intensity" min="0" max="12" value="1.4" step="0.1">
+                        </div>
+                        <div class="control-group">
+                            <label>Velocidade da Animacao <span class="value-display"
+                                    id="animation-speed-val">1.0</span></label>
+                            <input type="range" id="animation-speed" min="0.1" max="5" value="1" step="0.1">
+                        </div>
+                    </div>
+                </details>
+
+                <details class="section-card">
+                    <summary>Lasers & Luz <span class="summary-pill">Show</span></summary>
+                    <div class="section-body">
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="lasers-enabled" checked>
+                            <label>Lasers Ativos</label>
+                        </div>
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="laser-all-towers" checked>
+                            <label>Laser em todas as torres</label>
+                        </div>
+                        <div class="control-group color-picker-wrapper">
+                            <label>Cor dos Lasers</label>
+                            <input type="color" id="laser-color" value="#00ff00">
+                        </div>
+                        <div class="control-group">
+                            <label>Qtd lasers no palco traseiro <span class="value-display"
+                                    id="stage-laser-count-val">20</span></label>
+                            <input type="range" id="stage-laser-count" min="1" max="30" value="20" step="1">
+                        </div>
+                        <div class="control-group">
+                            <label>Cena de Animacao (Lasers)</label>
+                            <select id="laser-anim-preset">
+                                <option value="anim1">Anim 1 - Pulse rapido</option>
+                                <option value="anim2">Anim 2 - Lento suave</option>
+                                <option value="anim3">Anim 3 - Turbo</option>
+                                <option value="anim4">Anim 4 - Estatico</option>
+                                <option value="anim5">Anim 5 - Medio</option>
+                                <option value="wave" selected>Onda Treble</option>
+                            </select>
+                        </div>
+                        <div class="control-group">
+                            <label>Cena de Posicao (Lasers)</label>
+                            <select id="laser-pos-preset">
+                                <option value="pos1">Pos 1 - Frente longa</option>
+                                <option value="pos2">Pos 2 - Curta</option>
+                                <option value="pos3">Pos 3 - Aberta</option>
+                                <option value="pos4">Pos 4 - Fechada</option>
+                                <option value="pos5">Pos 5 - Altas</option>
+                            </select>
+                        </div>
+                        <div class="control-group">
+                            <label>Direcao da Onda (Lasers)</label>
+                            <select id="laser-wave-mode">
+                                <option value="center-out">Centro -> Bordas</option>
+                                <option value="edges-in">Bordas -> Centro</option>
+                                <option value="left-right">Esquerda -> Direita</option>
+                                <option value="right-left">Direita -> Esquerda</option>
+                            </select>
+                        </div>
+                        <div class="control-group">
+                            <label>Salvar cena de laser</label>
+                            <input type="text" id="laser-scene-name" placeholder="ex: Cena 1"
+                                style="width:100%; padding:8px; border-radius:6px; border:1px solid #333; background:#1a1a2e; color:#fff;">
+                            <div style="display:flex; gap:8px; margin-top:8px;">
+                                <button class="btn btn-secondary" id="laser-save">Salvar</button>
+                                <button class="btn btn-secondary" id="laser-load">Carregar</button>
+                                <button class="btn btn-secondary" id="laser-delete">Apagar</button>
+                            </div>
+                            <select id="laser-scene-list"
+                                style="width:100%; margin-top:8px; padding:8px; border-radius:6px; border:1px solid #333; background:#1a1a2e; color:#fff;">
+                            </select>
+                        </div>
+                    </div>
+                </details>
+
+                <details class="section-card">
+                    <summary>Paineis P5</summary>
+                    <div class="section-body">
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="p5-panels-enabled" checked>
+                            <label>Ativar P5</label>
+                        </div>
+                        <div class="control-group">
+                            <label>Paineis por Linha (X) <span class="value-display"
+                                    id="p5-panels-x-val">4</span></label>
+                            <input type="range" id="p5-panels-x" min="1" max="12" value="4" step="1">
+                        </div>
+                        <div class="control-group">
+                            <label>Paineis por Coluna (Y) <span class="value-display"
+                                    id="p5-panels-y-val">4</span></label>
+                            <input type="range" id="p5-panels-y" min="1" max="20" value="4" step="1">
+                        </div>
+                        <div class="control-group">
+                            <label>Altura inicial P5 (m) <span class="value-display"
+                                    id="p5-panels-start-val">0.5</span></label>
+                            <input type="range" id="p5-panels-start" min="0" max="5" value="0.5" step="0.1">
+                        </div>
+                        <div class="control-group">
+                            <label>Altura final P5 (m) <span class="value-display"
+                                    id="p5-panels-end-val">6.0</span></label>
+                            <input type="range" id="p5-panels-end" min="1" max="12" value="6.0" step="0.1">
+                        </div>
+                        <div class="control-group color-picker-wrapper">
+                            <label>Cor P5</label>
+                            <input type="color" id="p5-panel-color" value="#ffffff">
+                        </div>
+                    </div>
+                </details>
+
+                <details class="section-card">
+                    <summary>Camera e Visual</summary>
+                    <div class="section-body">
+                        <button class="btn btn-secondary" id="reset-camera">Reset Camera</button>
+                        <div class="btn-row">
+                            <button class="btn btn-secondary" id="top-view">Topo</button>
+                            <button class="btn btn-secondary" id="front-view">Frente</button>
+                            <button class="btn btn-secondary" id="side-view">Lado</button>
+                        </div>
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="auto-rotate">
+                            <label>Rotacao Automatica</label>
+                        </div>
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="show-floor" checked>
+                            <label>Mostrar Piso</label>
+                        </div>
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="show-stage-deck" checked>
+                            <label>Mostrar Palco Modular</label>
+                        </div>
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="show-dimensions">
+                            <label>Mostrar Medidas</label>
+                        </div>
+                    </div>
+                </details>
+
+                <details class="section-card">
+                    <summary>Palco Modular</summary>
+                    <div class="section-body">
+                        <div class="control-group">
+                            <label>Backstage Esq (m) <span class="value-display"
+                                    id="deck-back-left-val">8.75</span></label>
+                            <input type="range" id="deck-back-left" min="2" max="15" value="8.75" step="0.25">
+                        </div>
+                        <div class="control-group">
+                            <label>Backstage Centro (m) <span class="value-display"
+                                    id="deck-back-center-val">13.75</span></label>
+                            <input type="range" id="deck-back-center" min="2" max="20" value="13.75" step="0.25">
+                        </div>
+                        <div class="control-group">
+                            <label>Backstage Dir (m) <span class="value-display"
+                                    id="deck-back-right-val">8.75</span></label>
+                            <input type="range" id="deck-back-right" min="2" max="15" value="8.75" step="0.25">
+                        </div>
+                        <div class="control-group">
+                            <label>Profundidade Backstage (m) <span class="value-display"
+                                    id="deck-back-depth-val">7.5</span></label>
+                            <input type="range" id="deck-back-depth" min="2" max="12" value="7.5" step="0.25">
+                        </div>
+                        <div class="control-group">
+                            <label>Largura DJ (m) <span class="value-display" id="deck-dj-width-val">8</span></label>
+                            <input type="range" id="deck-dj-width" min="2" max="15" value="8" step="0.25">
+                        </div>
+                        <div class="control-group">
+                            <label>Profundidade DJ (m) <span class="value-display"
+                                    id="deck-dj-depth-val">3.75</span></label>
+                            <input type="range" id="deck-dj-depth" min="1" max="10" value="3.75" step="0.25">
+                        </div>
+                        <div class="control-group">
+                            <label>Largura Frente (m) <span class="value-display"
+                                    id="deck-front-width-val">8</span></label>
+                            <input type="range" id="deck-front-width" min="2" max="20" value="8" step="0.25">
+                        </div>
+                        <div class="control-group">
+                            <label>Profundidade Frente (m) <span class="value-display"
+                                    id="deck-front-depth-val">2.5</span></label>
+                            <input type="range" id="deck-front-depth" min="1" max="10" value="2.5" step="0.25">
+                        </div>
+                        <div class="control-group">
+                            <label>Altura do Palco (m) <span class="value-display"
+                                    id="deck-height-val">1.33</span></label>
+                            <input type="range" id="deck-height" min="0.5" max="3" value="1.33" step="0.05">
+                        </div>
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="show-glb-model">
+                            <label>Mostrar Modelo GLB Original</label>
+                        </div>
+                    </div>
+                </details>
+
+                <details class="section-card">
+                    <summary>Publico</summary>
+                    <div class="section-body">
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="crowd-enabled" checked>
+                            <label>Ativar publico</label>
+                        </div>
+                        <div class="control-group">
+                            <label>Densidade (pessoas/m2) <span class="value-display"
+                                    id="crowd-density-val">2.5</span></label>
+                            <input type="range" id="crowd-density" min="0.5" max="4" value="2.5" step="0.1">
+                        </div>
+                    </div>
+                </details>
+
+                <details class="section-card">
+                    <summary>LED Palco</summary>
+                    <div class="section-body">
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="stage-front-bands" checked>
+                            <label>LED Frontais</label>
+                        </div>
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="stage-rear-bands" checked>
+                            <label>LED Traseiros</label>
+                        </div>
+                        <div class="control-group">
+                            <label>Quantidade de Faixas <span class="value-display"
+                                    id="stage-band-count-val">6</span></label>
+                            <input type="range" id="stage-band-count" min="1" max="6" value="6" step="1">
+                        </div>
+                        <div class="control-group">
+                            <label>Altura da Faixa (m) <span class="value-display"
+                                    id="stage-band-height-val">0.6</span></label>
+                            <input type="range" id="stage-band-height" min="0.2" max="1.5" value="0.6" step="0.05">
+                        </div>
+                        <div class="control-group">
+                            <label>Profundidade da Faixa (m) <span class="value-display"
+                                    id="stage-band-depth-val">0.12</span></label>
+                            <input type="range" id="stage-band-depth" min="0.05" max="0.4" value="0.12" step="0.01">
+                        </div>
+                        <div class="control-group">
+                            <label>Altura Inicial (m acima do deck) <span class="value-display"
+                                    id="stage-band-start-val">2.2</span></label>
+                            <input type="range" id="stage-band-start" min="0" max="5" value="2.2" step="0.1">
+                        </div>
+                        <div class="control-group">
+                            <label>Altura Final (m acima do deck) <span class="value-display"
+                                    id="stage-band-end-val">6.3</span></label>
+                            <input type="range" id="stage-band-end" min="1" max="12" value="6.3" step="0.1">
+                        </div>
+                    </div>
+                </details>
+
+                <details class="section-card">
+                    <summary>Exportar</summary>
+                    <div class="section-body">
+                        <button class="btn btn-primary" id="export-config">Exportar Configuracao</button>
+                    </div>
+                    <div class="arrow-btn empty"></div>
+                    <div class="arrow-btn" id="cam-forward">^</div>
+                    <div class="arrow-btn empty"></div>
+
+                    <div class="arrow-btn" id="cam-left">&lt;</div>
+                    <div class="arrow-btn" id="cam-reset">O</div>
+                    <div class="arrow-btn" id="cam-right">&gt;</div>
+
+                    <div class="arrow-btn empty"></div>
+                    <div class="arrow-btn" id="cam-backward">v</div>
+                    <div class="arrow-btn empty"></div>
+            </div>
+            <button class="control-btn" id="cam-auto-toggle">Auto-Rotate</button>
         </div>
 
         <!-- Panel 2: LED Content -->
         <div class="control-panel" id="led-panel">
-            <h3>🖼️ Cenas LED</h3>
+            <h3>Cenas LED</h3>
             <div class="scene-grid" id="led-scenes">
-                <button class="scene-btn" data-scene="wave">🌊 Onda</button>
-                <button class="scene-btn" data-scene="pulse">💓 Pulse</button>
-                <button class="scene-btn" data-scene="rainbow">🌈 Rainbow</button>
-                <button class="scene-btn" data-scene="strobe">⚡ Strobe</button>
-                <button class="scene-btn" data-scene="fire">🔥 Fogo</button>
-                <button class="scene-btn" data-scene="matrix-rain">🟩 Matrix</button>
-                <button class="scene-btn active" data-scene="audio-reactive">🔊 Audio</button>
-                <button class="scene-btn" data-scene="audio-bass">🎵 Bass</button>
+                <button class="scene-btn" data-scene="wave">Onda</button>
+                <button class="scene-btn" data-scene="pulse">Pulse</button>
+                <button class="scene-btn" data-scene="rainbow">Rainbow</button>
+                <button class="scene-btn" data-scene="strobe">Strobe</button>
+                <button class="scene-btn" data-scene="fire">Fogo</button>
+                <button class="scene-btn" data-scene="matrix-rain">Matrix</button>
+                <button class="scene-btn active" data-scene="audio-reactive">Audio</button>
+                <button class="scene-btn" data-scene="audio-bass">Bass</button>
             </div>
         </div>
 
         <!-- Panel 3: Lights/Lasers -->
         <div class="control-panel" id="lights-panel">
-            <h3>💡 Luzes & Lasers</h3>
+            <h3>Luzes & Lasers</h3>
             <div class="scene-grid" id="light-scenes">
-                <button class="scene-btn" data-scene="static">🛑 Estático</button>
-                <button class="scene-btn" data-scene="sweep">↔️ Sweep</button>
-                <button class="scene-btn" data-scene="rotate">🔄 Rotação</button>
-                <button class="scene-btn" data-scene="chase">➡️ Chase</button>
-                <button class="scene-btn" data-scene="random">🎲 Random</button>
-                <button class="scene-btn" data-scene="strobe-laser">⚡ Strobe</button>
-                <button class="scene-btn active" data-scene="audio-sync">🎧 Sync</button>
-                <button class="scene-btn" data-scene="audio-kick">🥁 Kick</button>
+                <button class="scene-btn" data-scene="static">Estatico</button>
+                <button class="scene-btn" data-scene="sweep">Sweep</button>
+                <button class="scene-btn" data-scene="rotate">Rotacao</button>
+                <button class="scene-btn" data-scene="chase">Chase</button>
+                <button class="scene-btn" data-scene="random">Random</button>
+                <button class="scene-btn" data-scene="strobe-laser">Strobe</button>
+                <button class="scene-btn active" data-scene="audio-sync">Sync</button>
+                <button class="scene-btn" data-scene="audio-kick">Kick</button>
             </div>
         </div>
 
         <!-- Panel 4: Music -->
         <div class="control-panel" id="music-panel">
-            <h3>🎶 Música</h3>
+            <h3>Musica</h3>
             <div class="music-controls">
-                <button class="play-pause-btn" id="music-play">▶</button>
-                <button class="play-pause-btn" id="music-pause">⏸</button>
+                <button class="play-pause-btn" id="music-play">Play</button>
+                <button class="play-pause-btn" id="music-pause">Pause</button>
             </div>
             <div class="music-list" id="music-tracks">
                 <!-- preenchido dinamicamente -->
@@ -1117,4 +1255,5 @@
     </script>
     <script type="module" src="./js/main.js"></script>
 </body>
+
 </html>

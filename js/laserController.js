@@ -11,7 +11,7 @@ export class LaserController {
         this.enabled = true;
         this.options = {
             patternIndex: 0, // 0..9 variações
-            hue: 120,
+            hue: 0,   // vermelho
             speed: 1,
             distance: 80,
             thickness: 1
